@@ -1,0 +1,12 @@
+torch
+torchvision
+monai
+nibabel
+torchio
+SimpleITK
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+jupyter
