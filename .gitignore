@@ -6,3 +6,6 @@ __pycache__/
 *.ipynb_checkpoints
 .DS_Store
 kaggle-env/
+
+outputs/mslesseg/model_a/checkpoints_run1_uniform_sampling/
+outputs/mslesseg/model_a/checkpoints_run2_full/model_a_last.pt

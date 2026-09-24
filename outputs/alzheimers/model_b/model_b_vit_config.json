@@ -1,0 +1,32 @@
+{
+  "model": "ViT-B/16",
+  "pretrained": "ImageNet1K_V1",
+  "trainable_components": "last encoder block + classification head",
+  "trainable_parameters": 7089410,
+  "total_parameters": 85800194,
+  "slice_offsets": [
+    -30,
+    -15,
+    0,
+    15,
+    30
+  ],
+  "input_size": [
+    224,
+    224
+  ],
+  "normalization": "non-zero voxel percentile 1-99 + ImageNet mean/std",
+  "train_scans": 164,
+  "validation_scans": 35,
+  "test_scans": 36,
+  "training_examples": 820,
+  "validation_examples": 175,
+  "test_examples": 180,
+  "seeds": [
+    42,
+    123,
+    2024
+  ],
+  "decision_rule": "argmax softmax probability",
+  "test_evaluation": "scan-level; mean probability across five slice offsets"
+}
