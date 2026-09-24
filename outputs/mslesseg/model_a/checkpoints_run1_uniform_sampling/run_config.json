@@ -1,0 +1,21 @@
+{
+  "model": "Model A -- reproduction of Shifts-2.0 3D U-Net (single model, not 5-member ensemble)",
+  "reason_for_reduction": "GPU budget constraint, documented explicitly",
+  "in_channels": 3,
+  "modalities": [
+    "T1",
+    "T2",
+    "FLAIR"
+  ],
+  "patch_size": [
+    112,
+    160,
+    128
+  ],
+  "loss": "FocalDiceLoss",
+  "optimizer": "Adam",
+  "lr": 0.0001,
+  "seed": 42,
+  "train_patients": 42,
+  "val_patients": 11
+}

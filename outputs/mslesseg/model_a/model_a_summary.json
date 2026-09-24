@@ -1,0 +1,25 @@
+{
+  "model": "Model A -- reproduction of Shifts-2.0 3D U-Net (single model, not 5-member ensemble)",
+  "modalities": [
+    "T1",
+    "T2",
+    "FLAIR"
+  ],
+  "patch_size": [
+    112,
+    160,
+    128
+  ],
+  "sampling": "foreground-biased (fg_prob=0.75)",
+  "loss": "Tversky (alpha=0.3, beta=0.7)",
+  "decision_threshold": 0.99999726,
+  "threshold_selected_on": "validation set (22 scans), never re-tuned on test",
+  "known_limitation": "probability outputs are poorly calibrated -- saturate near 0/1; revisit in reliability/calibration stage",
+  "val_dice_full_volume": 0.5639,
+  "val_precision": 0.4844,
+  "val_recall": 0.6746,
+  "test_dice_full_volume": 0.3155549168586731,
+  "test_precision": 0.24278336763381958,
+  "test_recall": 0.7236312627792358,
+  "checkpoint": "/kaggle/working/checkpoints_run2_full/model_a_best.pt"
+}

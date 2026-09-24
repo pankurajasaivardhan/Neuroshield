@@ -1,0 +1,15 @@
+{
+  "model": "Model A -- reproduction of Shifts-2.0 3D U-Net (single model, not 5-member ensemble)",
+  "run": "run2 -- foreground-biased sampling (fg_prob=0.75) + Tversky loss (alpha=0.3, beta=0.7)",
+  "modalities": [
+    "T1",
+    "T2",
+    "FLAIR"
+  ],
+  "patch_size": [
+    112,
+    160,
+    128
+  ],
+  "seed": 42
+}
