@@ -32,7 +32,7 @@ def stage_cases(case_ids, raw_data, out_dir, remove: str | None) -> str:
 def run_predict(images, preds, artifact, config, fold):
     env = dict(os.environ)
     env['nnUNet_results'] = artifact
-    subprocess.run(['nnUNetv2_predict', '-i', images, '-o', preds, '-d', 'Dataset001_BraTS2020', '-c', config, '-f', str(fold), '-tr', 'nnUNetTrainer_100epochs', '--disable_tta', '-npp', '1', '-nps', '1'], check=True, env=env)
+    subprocess.run(['nnUNetv2_predict', '-i', images, '-o', preds, '-d', 'Dataset001_BraTS2020', '-c', config, '-f', str(fold), '-tr', 'nnUNetTrainer_100epochs', '--disable_tta', '-npp', '1', '-nps', '1', '-device', 'cpu'], check=True, env=env)
 
 def wt_dice(a: np.ndarray, b: np.ndarray) -> float:
     (a, b) = (a > 0, b > 0)
