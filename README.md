@@ -1,10 +1,10 @@
 # NeuroShield
 
-NeuroShield is a three track medical AI reliability project focused on neurological imaging. Each track targets a distinct clinical task and dataset, developed independently but following a shared methodology for building and evaluating models.
+NeuroShield is a two track medical AI reliability project focused on neurological imaging. Each track targets a distinct clinical task and dataset, developed independently but following a shared methodology for building and evaluating models.
 
 The project is not only about training models. It follows a reliability oriented workflow involving baseline reproduction, a project selected model, reliability evaluation, systematic failure analysis, targeted repair, a repaired model (Model C), external or domain shift evaluation, and a final reliability assessment.
 
-The three tracks, Alzheimer's disease classification, brain tumor segmentation, and multiple sclerosis lesion segmentation, are developed in parallel and are currently at different stages of this workflow.
+The two tracks, Alzheimer's disease classification and brain tumor segmentation, are developed in parallel and are currently at different stages of this workflow.
 
 ## Common Project Flow
 
@@ -20,15 +20,14 @@ flowchart TD
     H --> I[Reliability Gate]
 ```
 
-This workflow is applied independently to all three tracks while the tracks are developed in parallel.
+This workflow is applied independently to both tracks while the tracks are developed in parallel.
 
-## Three Track Overview
+## Two Track Overview
 
 | Track | Clinical Task | Dataset | Model A | Model B | Current Status |
 |---|---|---|---|---|---|
 | Track 1 | Alzheimer's disease classification | OASIS | Published / reproducible OASIS classifier | ViT B/16 | Model B complete; Model A remaining |
 | Track 2 | Brain tumor segmentation | BraTS 2020 | 2D nnU-Net | UNETR | Model A training completed; checkpoint persistence and outer test evaluation remaining |
-| Track 3 | Multiple sclerosis lesion segmentation | MSLesSeg | 3D U-Net reproduction | SegResNet | Model A complete; Model B remaining |
 
 ## Datasets
 
@@ -44,12 +43,6 @@ This workflow is applied independently to all three tracks while the tracks are 
 - Four MRI modalities: FLAIR, T1, T1ce, T2
 - 368 usable cases after validation
 - Fixed split: 257 train, 55 validation, 56 outer test
-
-### Track 3: MSLesSeg
-
-- 75 patients and 115 MRI scans
-- Modalities: T1, T2, FLAIR
-- Patient level split: 42 train, 11 validation, 22 test patients
 
 ## Track 1: Alzheimer's Disease Classification
 
@@ -137,67 +130,18 @@ Model B is UNETR. Status: remaining.
 - Model C
 - Comparative evaluation
 
-## Track 3: Multiple Sclerosis Lesion Segmentation
-
-### Dataset
-
-- MSLesSeg
-- 75 patients
-- 115 scans
-- T1, T2, FLAIR
-- Patient level split: 42 train, 11 validation, 22 test
-
-### Model A: 3D U-Net
-
-- Reproduction of the Shifts 2.0 3D U-Net baseline
-- Single model reproduction due to GPU constraints
-- Input: T1 + T2 + FLAIR
-- Patch size: 112 x 160 x 128
-- Seed 42
-
-Results:
-
-| Split | Dice | Precision | Recall |
-|---|---|---|---|
-| Validation | 0.5639 | 0.4844 | 0.6746 |
-| Official Test | 0.3156 | 0.2428 | 0.7236 |
-
-The official Model A checkpoint is preserved using Git LFS.
-
-### Reliability Observation
-
-Poor calibration was observed, with probability outputs saturating near 0 or 1. Calibration has not yet been addressed.
-
-### Model B
-
-Model B is SegResNet. Status: remaining.
-
-### Remaining Work
-
-- SegResNet
-- Reliability / stress testing
-- Uncertainty
-- Calibration
-- OOD / domain shift
-- Modality intervention / counterfactual testing
-- Model disagreement
-- Failure Fingerprint
-- Model C
-- Shift MS evaluation
-- Reliability Gate
-
 ## Parallel Development Status
 
-| Stage | Track 1: Alzheimer's | Track 2: Brain Tumor | Track 3: MS |
-|---|---|---|---|
-| Dataset preparation | Complete | Complete | Complete |
-| Model A | Remaining | Training complete; persistence / evaluation remaining | Complete |
-| Model B | Complete | Remaining | Remaining |
-| Reliability evaluation | Remaining | Remaining | Remaining |
-| Failure analysis | Remaining | Remaining | Remaining |
-| Model C | Remaining | Remaining | Remaining |
-| External / domain shift | ADNI remaining | Remaining | Shift MS remaining |
-| Reliability Gate | Remaining | Remaining | Remaining |
+| Stage | Track 1: Alzheimer's | Track 2: Brain Tumor |
+|---|---|---|
+| Dataset preparation | Complete | Complete |
+| Model A | Remaining | Training complete; persistence / evaluation remaining |
+| Model B | Complete | Remaining |
+| Reliability evaluation | Remaining | Remaining |
+| Failure analysis | Remaining | Remaining |
+| Model C | Remaining | Remaining |
+| External / domain shift | ADNI remaining | Remaining |
+| Reliability Gate | Remaining | Remaining |
 
 ## Repository Structure
 
@@ -205,16 +149,13 @@ Model B is SegResNet. Status: remaining.
 Neuroshield/
 ├── notebooks/
 │   ├── alzheimers/
-│   ├── braintumor/
-│   └── mslesseg/
+│   └── braintumor/
 ├── src/
 │   ├── alzheimers/
-│   ├── braintumor/
-│   └── mslesseg/
+│   └── braintumor/
 ├── outputs/
 │   ├── alzheimers/
-│   ├── braintumor/
-│   └── mslesseg/
+│   └── braintumor/
 ├── .gitignore
 ├── .gitattributes
 └── requirements.txt
@@ -224,4 +165,4 @@ Large datasets are maintained separately, and large model checkpoints are versio
 
 ## Overall Status
 
-The three tracks are being developed in parallel. Track 1 Model B is complete while Model A remains. Track 2 Model A training is complete, but artifact persistence and outer test evaluation remain. Track 3 Model A is complete and Model B remains. The common reliability, failure analysis, Model C, and external / domain shift stages remain across all three tracks.
+The two tracks are being developed in parallel. Track 1 Model B is complete while Model A remains. Track 2 Model A training is complete, but artifact persistence and outer test evaluation remain. The common reliability, failure analysis, Model C, and external / domain shift stages remain across both tracks.
