@@ -32,7 +32,7 @@ def stage_cases(case_ids, raw_data, out_dir, remove: str | None) -> str:
 def run_predict(images, preds, artifact, config, fold):
     env = dict(os.environ)
     env['nnUNet_results'] = artifact
-    subprocess.run(['nnUNetv2_predict', '-i', images, '-o', preds, '-d', 'Dataset001_BraTS2020', '-c', config, '-f', str(fold), '-tr', 'nnUNetTrainer_100epochs', '--disable_tta'], check=True, env=env)
+    subprocess.run(['nnUNetv2_predict', '-i', images, '-o', preds, '-d', 'Dataset001_BraTS2020', '-c', config, '-f', str(fold), '-tr', 'nnUNetTrainer_100epochs', '--disable_tta', '-npp', '1', '-nps', '1'], check=True, env=env)
 
 def wt_dice(a: np.ndarray, b: np.ndarray) -> float:
     (a, b) = (a > 0, b > 0)
@@ -61,17 +61,19 @@ def main():
         int_dir = os.path.join(args.out, f'no_{args.remove}')
         imgs = stage_cases(case_ids, args.raw_data, int_dir, remove=args.remove)
         run_predict(imgs, os.path.join(int_dir, 'predictions'), args.artifact, args.config, args.fold)
+        csv_path = os.path.join(args.out, 'modality_removal_per_case.csv')
         for cid in case_ids:
             full = nib.load(os.path.join(base_dir, 'predictions', f'{cid}.nii.gz')).get_fdata().astype(int)
             intr = nib.load(os.path.join(int_dir, 'predictions', f'{cid}.nii.gz')).get_fdata().astype(int)
             d = wt_dice(full, intr)
             rows.append({'case_id': cid, 'removed_modality': args.remove, 'wt_dice_full_vs_intervened': d, 'stable': bool(d > 0.8)})
-        summ = {'intervention': f'{args.remove} removed (channel zeroed, documented)', 'split': args.split, 'n_cases': len(rows), 'mean_stability_dice': float(np.mean([r['wt_dice_full_vs_intervened'] for r in rows])), 'unstable_cases': [r['case_id'] for r in rows if not r['stable']], 'note': 'Low stability Dice means the prediction changes under modality removal - a counterfactual instability signal for the Reliability Gate.'}
+            summ = {'intervention': f'{args.remove} removed (channel zeroed, documented)', 'split': args.split, 'n_cases': len(rows), 'mean_stability_dice': float(np.mean([r['wt_dice_full_vs_intervened'] for r in rows])), 'unstable_cases': [r['case_id'] for r in rows if not r['stable']], 'complete': len(rows) == len(case_ids), 'note': 'Low stability Dice means the prediction changes under modality removal - a counterfactual instability signal for the Reliability Gate.'}
+            pd.DataFrame(rows).to_csv(csv_path, index=False)
+            with open(os.path.join(args.out, 'modality_removal_summary.json'), 'w') as f:
+                json.dump(summ, f, indent=2)
+            print(f"case {len(rows)}/{len(case_ids)} {cid}: wt_dice={d:.4f}", flush=True)
     else:
         summ = {'intervention': 'none (control)', 'n_cases': len(case_ids)}
-    pd.DataFrame(rows).to_csv(os.path.join(args.out, 'modality_removal_per_case.csv'), index=False)
-    with open(os.path.join(args.out, 'modality_removal_summary.json'), 'w') as f:
-        json.dump(summ, f, indent=2)
     print(json.dumps(summ, indent=2))
 if __name__ == '__main__':
     main()
