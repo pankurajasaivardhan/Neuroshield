@@ -29,7 +29,7 @@ def collate_fn(batch):
     ids = [b[2] for b in batch]
     return (imgs, labels, ids)
 
-def train_one_seed(seed: int, train_csv: str, val_csv: str, epochs: int, patience: int, device: str, model_builder=None) -> tuple[nn.Module, dict]:
+def train_one_seed(seed: int, train_csv: str, val_csv: str, epochs: int, patience: int, device: str, lr: float=1e-05, model_builder=None) -> tuple[nn.Module, dict]:
     if model_builder is None:
         model_builder = build_model
     set_seed(seed)
@@ -38,7 +38,7 @@ def train_one_seed(seed: int, train_csv: str, val_csv: str, epochs: int, patienc
     train_loader = DataLoader(train_ds, batch_size=16, shuffle=True, num_workers=2, collate_fn=collate_fn)
     val_loader = DataLoader(val_ds, batch_size=16, shuffle=False, num_workers=2, collate_fn=collate_fn)
     model = model_builder().to(device)
-    opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001)
+    opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
     crit = nn.CrossEntropyLoss()
     (best_val_loss, bad_epochs, best_state) = (float('inf'), 0, None)
     for epoch in range(epochs):
@@ -83,6 +83,7 @@ def run(model_builder=None, model_name: str='model_a_resnet50'):
     ap.add_argument('--seeds', type=int, nargs='+', default=[42, 123, 2024])
     ap.add_argument('--epochs', type=int, default=30)
     ap.add_argument('--patience', type=int, default=5)
+    ap.add_argument('--lr', type=float, default=1e-05)
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -91,7 +92,7 @@ def run(model_builder=None, model_name: str='model_a_resnet50'):
     test_csv = os.path.join(args.data_root, 'splits/test.csv')
     all_results = {}
     for seed in args.seeds:
-        (model, info) = train_one_seed(seed, train_csv, val_csv, args.epochs, args.patience, device, model_builder=model_builder)
+        (model, info) = train_one_seed(seed, train_csv, val_csv, args.epochs, args.patience, device, lr=args.lr, model_builder=model_builder)
         res = evaluate_test(model, test_csv, device)
         res.update(info)
         all_results[seed] = res
@@ -102,7 +103,7 @@ def run(model_builder=None, model_name: str='model_a_resnet50'):
     keys = ['accuracy', 'balanced_accuracy', 'sensitivity_recall', 'specificity', 'f1', 'roc_auc']
     summary = {k: {'mean': float(np.mean([r[k] for r in all_results.values()])), 'std': float(np.std([r[k] for r in all_results.values()]))} for k in keys}
     with open(os.path.join(args.out, f'{model_name}_results_summary.json'), 'w') as f:
-        json.dump({'per_seed': all_results, 'summary': summary, 'config': {'model': model_name, 'pretrained': 'IMAGENET1K_V1', 'seeds': args.seeds, 'epochs': args.epochs, 'patience': args.patience}}, f, indent=2)
+        json.dump({'per_seed': all_results, 'summary': summary, 'config': {'model': model_name, 'pretrained': 'IMAGENET1K_V1', 'seeds': args.seeds, 'epochs': args.epochs, 'patience': args.patience, 'lr': args.lr}}, f, indent=2)
     print('Summary:', json.dumps(summary, indent=2))
 
 def main():
