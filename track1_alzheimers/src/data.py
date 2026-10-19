@@ -24,7 +24,7 @@ def normalize_mri_slice(stack: np.ndarray) -> np.ndarray:
     (p1, p99) = np.percentile(nonzero, [1, 99])
     stack = np.clip(stack, p1, p99)
     stack = (stack - p1) / (p99 - p1 + 1e-08)
-    return np.clip(stack, 0, 1)
+    return np.clip(stack, 0, 1).astype(np.float32)
 
 class OASISDataset(Dataset):
 
