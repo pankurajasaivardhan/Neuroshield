@@ -6,13 +6,13 @@ import os
 import numpy as np
 import torch
 from sklearn.metrics import accuracy_score
-from neuroshield.shared.reliability.calibration import expected_calibration_error, brier_score, reliability_table, TemperatureScaler
-from neuroshield.shared.reliability.uncertainty import predictive_entropy, mutual_information, mc_dropout_probs
-from neuroshield.shared.reliability.ood import MahalanobisOOD
-from neuroshield.shared.reliability.disagreement import classification_disagreement
-from neuroshield.shared.reliability import gate as gate_mod
-from neuroshield.shared.reliability.fingerprint import FailureFingerprint, FailureCase
-from neuroshield.shared.reliability.report import ReliabilityReport
+from shared.reliability.calibration import expected_calibration_error, brier_score, reliability_table, TemperatureScaler
+from shared.reliability.uncertainty import predictive_entropy, mutual_information, mc_dropout_probs
+from shared.reliability.ood import MahalanobisOOD
+from shared.reliability.disagreement import classification_disagreement
+from shared.reliability import gate as gate_mod
+from shared.reliability.fingerprint import FailureFingerprint, FailureCase
+from shared.reliability.report import ReliabilityReport
 from .data import OASISDataset
 from . import train_model_a, train_model_b
 

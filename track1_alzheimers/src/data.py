@@ -1,4 +1,4 @@
-# Track 1 OASIS 2.5D dataset (5 sagittal slices per scan).
+# Track 1 (Alzheimer's, OASIS): 2.5D dataset, 5 sagittal slices per scan.
 from __future__ import annotations
 import numpy as np
 import pandas as pd

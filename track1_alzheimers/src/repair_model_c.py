@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 from .data import OASISDataset
 from .train_model_a import collate_fn, evaluate_test
 from .train_model_b import build_model
-from neuroshield.shared.reliability.fingerprint import FailureFingerprint
+from shared.reliability.fingerprint import FailureFingerprint
 
 def main():
     ap = argparse.ArgumentParser()

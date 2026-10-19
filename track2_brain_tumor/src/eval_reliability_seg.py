@@ -4,8 +4,8 @@ import argparse
 import json
 import os
 import numpy as np
-from neuroshield.shared.reliability.disagreement import segmentation_disagreement
-from neuroshield.shared.reliability.gate import risk_coverage_curve
+from shared.reliability.disagreement import segmentation_disagreement
+from shared.reliability.gate import risk_coverage_curve
 
 def region_calibration(prob_maps: np.ndarray, gt: np.ndarray, n_bins: int=10) -> dict:
     conf = prob_maps.max(axis=1)

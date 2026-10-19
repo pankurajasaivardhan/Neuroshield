@@ -1,179 +1,108 @@
 # NeuroShield
 
-NeuroShield is a two track medical AI reliability project focused on neurological imaging. Each track targets a distinct clinical task and dataset, developed independently but following a shared methodology for building and evaluating models.
+A two-track medical AI reliability project on brain MRI. NeuroShield does
+not only train models; it checks when a prediction can be trusted, records
+why a model fails, repairs the specific weakness, and abstains with an
+evidence-grounded explanation when a prediction is unreliable.
 
-The project is not only about training models. It follows a reliability oriented workflow involving baseline reproduction, a project selected model, reliability evaluation, systematic failure analysis, targeted repair, a repaired model (Model C), external or domain shift evaluation, and a final reliability assessment.
+- Track 1 - Alzheimer's disease classification on OASIS structural MRI
+- Track 2 - Brain tumor (glioma) segmentation on BraTS2020
 
-The two tracks, Alzheimer's disease classification and brain tumor segmentation, are developed in parallel and are currently at different stages of this workflow.
+Research prototype. Not a clinically validated diagnostic system.
 
-## Common Project Flow
-
-```mermaid
-flowchart TD
-    A[Medical Dataset] --> B[Model A Published / Reproducible Baseline]
-    B --> C[Model B Project Model]
-    C --> D[Reliability Evaluation]
-    D --> E[Failure Analysis]
-    E --> F[Targeted Intervention / Repair]
-    F --> G[Model C]
-    G --> H[External / Domain Shift Evaluation]
-    H --> I[Reliability Gate]
-```
-
-This workflow is applied independently to both tracks while the tracks are developed in parallel.
-
-## Two Track Overview
-
-| Track | Clinical Task | Dataset | Model A | Model B | Current Status |
-|---|---|---|---|---|---|
-| Track 1 | Alzheimer's disease classification | OASIS | Published / reproducible OASIS classifier | ViT B/16 | Model B complete; Model A remaining |
-| Track 2 | Brain tumor segmentation | BraTS 2020 | 2D nnU-Net | UNETR | Model A training completed; checkpoint persistence and outer test evaluation remaining |
-
-## Datasets
-
-### Track 1: OASIS
-
-- Used for Alzheimer's disease classification
-- Fixed subject level train, validation, and test split
-- Current split: 164 training, 35 validation, 36 test scans
-
-### Track 2: BraTS 2020
-
-- Brain tumor segmentation dataset
-- Four MRI modalities: FLAIR, T1, T1ce, T2
-- 368 usable cases after validation
-- Fixed split: 257 train, 55 validation, 56 outer test
-
-## Track 1: Alzheimer's Disease Classification
-
-### Dataset
-
-Fixed split: 164 training, 35 validation, 36 test scans.
-
-### Model A
-
-Model A is the required published or reproducible OASIS classification baseline.
-
-Current status: Remaining.
-
-### Model B: ViT B/16
-
-Completed components:
-
-- 2.5D multi slice MRI input
-- ImageNet pretrained ViT B/16
-- 12 example overfit sanity test
-- Three seeds: 42, 123, 2024
-- Scan level held out test evaluation
-- Saved results, configuration, and checkpoints
-
-Final Model B results:
-
-| Metric | Value |
-|---|---|
-| Accuracy | 0.7130 ± 0.0131 |
-| Balanced Accuracy | 0.7127 ± 0.0157 |
-| Sensitivity | 0.7111 ± 0.0314 |
-| Specificity | 0.7143 ± 0.0000 |
-| F1 | 0.6734 ± 0.0200 |
-| ROC AUC | 0.7386 ± 0.0120 |
-
-### Remaining Work
-
-- Model A
-- Reliability / uncertainty evaluation
-- Calibration
-- OOD / domain shift evaluation
-- Failure analysis
-- VAE + Latent Diffusion intervention
-- Model C
-- ADNI external validation
-- Final reliability evaluation
-
-## Track 2: Brain Tumor Segmentation
-
-### Dataset
-
-- BraTS 2020
-- 368 usable cases
-- 257 train, 55 validation, 56 outer test
-- FLAIR, T1, T1ce, T2
-
-### Model A: 2D nnU-Net
-
-- nnU-Net v2
-- 2D configuration
-- Fold 0
-- nnUNetTrainer_100epochs
-- 100 epochs
-- Training completed
-- Internal validation mean Dice: 0.765127
-
-Model A training is complete, but the required persistent checkpoint or configuration artifact was not successfully preserved in the first run because the verification stage expected configuration files in the wrong location.
-
-Status:
-
-- Model A training: complete
-- Persistent artifact: remaining
-- Outer test evaluation: remaining
-
-### Model B
-
-Model B is UNETR. Status: remaining.
-
-### Remaining Work
-
-- Corrected Model A artifact persistence
-- Model A outer test inference and evaluation
-- Model B (UNETR)
-- Reliability / failure analysis
-- Model C
-- Comparative evaluation
-
-## Parallel Development Status
-
-| Stage | Track 1: Alzheimer's | Track 2: Brain Tumor |
-|---|---|---|
-| Dataset preparation | Complete | Complete |
-| Model A | Remaining | Training complete; persistence / evaluation remaining |
-| Model B | Complete | Remaining |
-| Reliability evaluation | Remaining | Remaining |
-| Failure analysis | Remaining | Remaining |
-| Model C | Remaining | Remaining |
-| External / domain shift | ADNI remaining | Remaining |
-| Reliability Gate | Remaining | Remaining |
-
-## Repository Structure
+## Repository structure
 
 ```
 Neuroshield/
-├── notebooks/
-│   ├── alzheimers/
-│   └── braintumor/
-├── src/
-│   ├── alzheimers/
-│   └── braintumor/
-├── outputs/
-│   ├── alzheimers/
-│   └── braintumor/
-├── .gitignore
-├── .gitattributes
-└── requirements.txt
+├── shared/                      # Reliability framework used by both tracks
+│   ├── reliability/             # uncertainty, calibration, OOD, disagreement,
+│   │                            # gate, failure fingerprint, report schema
+│   ├── explain/                 # RAG + LLM explanation after abstention
+│   └── app/                     # FastAPI backend + Streamlit frontend
+│
+├── track1_alzheimers/           # Track 1: Alzheimer's classification (OASIS)
+│   ├── src/                     # reusable Python modules
+│   │   ├── data.py                  # 2.5D OASIS dataset
+│   │   ├── train_model_a.py         # ResNet-50 reference baseline
+│   │   ├── train_model_b.py         # ViT-B/16 (finalized Model B)
+│   │   ├── eval_reliability.py      # reliability signals + gate + fingerprint
+│   │   ├── repair_model_c.py        # targeted repair
+│   │   ├── gradcam.py               # saliency maps
+│   │   ├── external_adni.py         # ADNI external validation
+│   │   └── genai/vae.py             # counterfactual stability (VAE)
+│   └── notebooks/               # run these on Kaggle, in number order
+│       ├── 01_explore_oasis.ipynb
+│       ├── 02_prepare_dataset.ipynb
+│       ├── 03_train_model_b_final.ipynb
+│       ├── 04_train_model_a.ipynb
+│       ├── 05_reliability_evaluation.ipynb
+│       ├── 06_repair_model_c.ipynb
+│       ├── 07_vae_counterfactual.ipynb
+│       └── 08_external_adni.ipynb
+│
+├── track2_brain_tumor/          # Track 2: tumor segmentation (BraTS2020)
+│   ├── src/                     # reusable Python modules
+│   │   ├── recover_model_a.py       # checkpoint recovery + verification
+│   │   ├── eval_model_a_test.py     # held-out test: Dice, IoU, HD95
+│   │   ├── train_model_b_unetr.py   # UNETR via MONAI
+│   │   ├── modality_removal.py      # FLAIR-removal counterfactual
+│   │   └── eval_reliability_seg.py  # segmentation reliability
+│   └── notebooks/               # run these on Kaggle, in number order
+│       ├── braintumor-01-final.ipynb
+│       ├── braintumor-02-recover-model-a.ipynb
+│       ├── braintumor-03-test-evaluation.ipynb
+│       ├── braintumor-04-train-unetr.ipynb
+│       ├── braintumor-05-modality-removal.ipynb
+│       └── braintumor-06-reliability-evaluation.ipynb
+│
+├── outputs/                     # logged results, configs, checkpoints (LFS)
+├── src/                         # legacy helpers (kept for compatibility)
+├── requirements.txt
+└── README.md
 ```
 
-Large datasets are maintained separately, and large model checkpoints are versioned with Git LFS where required.
+## Current status
 
-## Overall Status
+| Stage | Track 1 (Alzheimer's) | Track 2 (Brain tumor) |
+|---|---|---|
+| Dataset preparation | Done | Done |
+| Model A | Pending | Training done, recovery + test eval pending |
+| Model B | Done (test accuracy 0.713 +/- 0.013, AUC 0.739 +/- 0.012, 3 seeds) | Pending (UNETR) |
+| Reliability evaluation | Code ready, run pending | Code ready, run pending |
+| Failure analysis / Model C | Code ready, run pending | Code ready, run pending |
+| External / domain shift | ADNI pending | Pending |
+| Reliability Gate | Code ready, run pending | Code ready, run pending |
 
-The two tracks are being developed in parallel. Track 1 Model B is complete while Model A remains. Track 2 Model A training is complete, but artifact persistence and outer test evaluation remain. The common reliability, failure analysis, Model C, and external / domain shift stages remain across both tracks.
+Only the numbers above are verified results. Everything else reports as
+pending until its notebook has actually been run.
 
-## Reliability Code Package (added 2026-10-19)
+## How to run
 
-A new `neuroshield/` package implements the remaining project stages:
-the shared Reliability Engine (uncertainty, calibration, OOD, disagreement),
-the Reliability Gate with risk-coverage evaluation, the Failure Fingerprint
-schema, the RAG + LLM explanation layer, the FastAPI/Streamlit app, Track 1
-Model A training + reliability evaluation + Model C repair, and Track 2
-Model A artifact recovery, held-out test evaluation, UNETR training, and
-modality-removal counterfactual experiments. See `PACKAGE.md`.
+Notebooks run on Kaggle (free GPU). Each new notebook clones this repo in
+its first cell, installs `requirements.txt`, and calls the modules under
+`shared/` and the track's `src/`.
 
+Track 2 first (secure the trained Model A before any new training):
+`braintumor-02` recovers the artifact, `braintumor-03` computes the real
+held-out test metrics, `braintumor-04` trains UNETR, `05` and `06` run the
+counterfactual and reliability studies.
+
+Track 1: `04` trains the reference baseline, `05` runs the reliability
+evaluation and gate, `06` repairs only if a systematic failure was found,
+`07` and `08` are the generative and external-validation stages.
+
+Local app (after a track has a checkpoint and a fitted gate):
+
+```
+pip install -r requirements.txt
+uvicorn shared.app.backend:app
+streamlit run shared/app/frontend.py
+```
+
+## Project rules
+
+- Gate thresholds are fit on validation data, never on the test split.
+- The Track 2 56-case outer test set stays untouched until final evaluation.
+- Always label numbers as validation or test results.
+- A failed repair is a valid result; report it.
+- Two tracks only: Alzheimer's classification and brain tumor segmentation.

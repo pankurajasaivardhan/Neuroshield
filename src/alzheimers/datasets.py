@@ -1,3 +1,2 @@
-# Fixed: the old import pointed at a module that does not exist.
-# The working OASIS dataset now lives in the neuroshield package.
-from neuroshield.track1.data import OASISDataset
+# Fixed import: the working OASIS dataset lives in track1_alzheimers/src.
+from track1_alzheimers.src.data import OASISDataset
