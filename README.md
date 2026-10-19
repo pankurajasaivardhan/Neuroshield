@@ -166,3 +166,14 @@ Large datasets are maintained separately, and large model checkpoints are versio
 ## Overall Status
 
 The two tracks are being developed in parallel. Track 1 Model B is complete while Model A remains. Track 2 Model A training is complete, but artifact persistence and outer test evaluation remain. The common reliability, failure analysis, Model C, and external / domain shift stages remain across both tracks.
+
+## Reliability Code Package (added 2026-10-19)
+
+A new `neuroshield/` package implements the remaining project stages:
+the shared Reliability Engine (uncertainty, calibration, OOD, disagreement),
+the Reliability Gate with risk-coverage evaluation, the Failure Fingerprint
+schema, the RAG + LLM explanation layer, the FastAPI/Streamlit app, Track 1
+Model A training + reliability evaluation + Model C repair, and Track 2
+Model A artifact recovery, held-out test evaluation, UNETR training, and
+modality-removal counterfactual experiments. See `PACKAGE.md`.
+

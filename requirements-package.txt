@@ -1,0 +1,16 @@
+torch
+torchvision
+monai
+nnunetv2
+nibabel
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+sentence-transformers
+faiss-cpu
+fastapi
+uvicorn
+streamlit
+requests
