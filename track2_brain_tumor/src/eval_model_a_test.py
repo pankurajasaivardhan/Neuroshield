@@ -60,7 +60,7 @@ def main():
             src = os.path.join(cdir, f'{cid}_{mod}.nii.gz')
             dst = os.path.join(images_ts, f'{cid}_{code}.nii.gz')
             if not os.path.exists(dst):
-                os.link(src, dst) if os.path.exists(src) else None
+                os.symlink(os.path.realpath(src), dst) if os.path.exists(src) else None
     env = dict(os.environ)
     env['nnUNet_results'] = args.artifact
     subprocess.run(['nnUNetv2_predict', '-i', images_ts, '-o', preds_dir, '-d', 'Dataset001_BraTS2020', '-c', args.config, '-f', str(args.fold), '-tr', 'nnUNetTrainer_100epochs', '--disable_tta'], check=True, env=env)

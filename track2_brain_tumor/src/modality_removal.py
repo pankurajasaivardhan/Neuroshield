@@ -26,7 +26,7 @@ def stage_cases(case_ids, raw_data, out_dir, remove: str | None) -> str:
                 zeroed = nib.Nifti1Image(np.zeros_like(img.get_fdata()), img.affine, img.header)
                 nib.save(zeroed, dst)
             elif not os.path.exists(dst):
-                os.link(src, dst)
+                os.symlink(os.path.realpath(src), dst)
     return images
 
 def run_predict(images, preds, artifact, config, fold):
