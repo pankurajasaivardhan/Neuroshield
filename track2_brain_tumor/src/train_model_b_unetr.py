@@ -23,7 +23,7 @@ def case_dicts(manifest: str, raw_data: str, split: str) -> list[dict]:
         for (root, dirs, _) in os.walk(raw_data):
             if cid in dirs:
                 cdir = os.path.join(root, cid)
-                cases.append({'image': [os.path.join(cdir, f'{cid}_{m}.nii.gz') for m in MODS], 'label': os.path.join(cdir, f'{cid}_seg.nii.gz'), 'case_id': cid})
+                cases.append({'image': [os.path.join(cdir, f'{cid}_{m}.nii') for m in MODS], 'label': os.path.join(cdir, f'{cid}_seg.nii'), 'case_id': cid})
                 break
     return cases
 
