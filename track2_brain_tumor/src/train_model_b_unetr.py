@@ -41,8 +41,8 @@ def main():
     ap.add_argument('--manifest', required=True)
     ap.add_argument('--raw-data', required=True)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--epochs', type=int, default=200)
-    ap.add_argument('--val-interval', type=int, default=5)
+    ap.add_argument('--epochs', type=int, default=40)
+    ap.add_argument('--val-interval', type=int, default=10)
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -88,7 +88,7 @@ def main():
                 torch.save(model.state_dict(), os.path.join(args.out, 'unetr_best.pt'))
                 print(f'  new best val Dice {md:.4f}, checkpoint saved', flush=True)
     with open(os.path.join(args.out, 'unetr_history.json'), 'w') as f:
-        json.dump({'best_val_dice': best_dice, 'history': history, 'config': {'arch': 'UNETR', 'img_size': [96, 96, 96], 'epochs': args.epochs, 'loss': 'DiceCE', 'split': 'same manifest as Model A (257/55)'}}, f, indent=2)
+        json.dump({'best_val_dice': best_dice, 'history': history, 'config': {'arch': 'UNETR', 'img_size': [96, 96, 96], 'epochs': args.epochs, 'loss': 'DiceCE', 'split': 'same manifest as Model A (249/63/56)'}}, f, indent=2)
     print(f'Done. Best val Dice {best_dice:.4f}. Next: held-out test eval with eval_model_a_test.py adapted for UNETR, then reliability comparison.')
 if __name__ == '__main__':
     main()
