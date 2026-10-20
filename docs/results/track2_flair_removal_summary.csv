@@ -1,0 +1,2 @@
+n_cases,mean_stability_dice,unstable_cases,note
+56,0.4176,51/56,"unstable = whole-tumor Dice <= 0.8 after FLAIR removal; per-case CSV has 49/56 rows extracted from the run preview, full CSV lives in the Kaggle run output"

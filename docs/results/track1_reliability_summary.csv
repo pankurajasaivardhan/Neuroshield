@@ -1,0 +1,8 @@
+model,ece_raw,ece_calibrated,brier,accuracy,mean_ood
+model_a_resnet50,0.0915,0.0829,0.4358,0.6111,8492485.19
+model_b_vit,0.1238,0.0672,0.4706,0.5722,8252.9
+
+disagreement_mismatch_fraction,0.3944
+mean_js_divergence,0.0273
+test_error_ungated,0.3889
+gate,degenerate - validation-fitted cutoff 1.00 admits all 180 test slices

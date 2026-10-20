@@ -1,0 +1,5 @@
+metric,mean,std,n
+foreground_dice,0.9005,0.0787,56
+label1_necrotic_dice,0.6519,0.297,56
+label2_edema_dice,0.7769,0.1696,56
+label3_enhancing_dice,0.7804,0.2129,56

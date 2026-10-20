@@ -1,0 +1,10 @@
+model,metric,mean,std
+model_a_resnet50,accuracy,0.713,0.0131
+model_a_resnet50,balanced_accuracy,0.7063,0.0184
+model_a_resnet50,sensitivity,0.6667,0.0544
+model_a_resnet50,specificity,0.746,0.0224
+model_a_resnet50,f1,0.6583,0.0279
+model_a_resnet50,auc,0.727,0.0069
+model_b_vit,accuracy,0.713,0.0131
+model_b_vit,auc,0.7386,0.012
+majority_baseline,accuracy,0.5732,
