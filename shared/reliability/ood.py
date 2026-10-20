@@ -9,6 +9,7 @@ class MahalanobisOOD:
         self.precision: np.ndarray | None = None
 
     def fit(self, train_features: np.ndarray, train_labels: np.ndarray) -> None:
+        train_features = train_features.reshape(train_features.shape[0], -1)
         classes = np.unique(train_labels)
         self.class_means = [train_features[train_labels == c].mean(axis=0) for c in classes]
         centered = np.concatenate([train_features[train_labels == c] - self.class_means[i] for (i, c) in enumerate(classes)], axis=0)
@@ -17,6 +18,7 @@ class MahalanobisOOD:
         self.precision = np.linalg.pinv(cov)
 
     def score(self, features: np.ndarray) -> np.ndarray:
+        features = features.reshape(features.shape[0], -1)
         if self.precision is None:
             raise RuntimeError('MahalanobisOOD not fitted.')
         dists = []

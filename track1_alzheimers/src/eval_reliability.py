@@ -32,7 +32,7 @@ def collect_logits_and_features(model, dataset, device, feature_hook_layer):
     feats = []
 
     def hook(_m, _in, out):
-        feats.append(out.detach().cpu())
+        feats.append(out.detach().cpu().flatten(1))
     h = feature_hook_layer.register_forward_hook(hook)
     model.eval()
     (logits_all, labels_all, ids_all) = ([], [], [])
