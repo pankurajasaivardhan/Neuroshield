@@ -9,6 +9,18 @@ import nibabel as nib
 import pandas as pd
 MODALITY_CODES = {'flair': '0000', 't1': '0001', 't1ce': '0002', 't2': '0003'}
 
+def load_geometry(cdir, cid, remove, tmp_dir):
+    ref = next(m for m in MODALITY_CODES if m != remove)
+    src = os.path.join(cdir, f'{cid}_{ref}.nii.gz')
+    with open(src, 'rb') as f:
+        magic = f.read(2)
+    if magic != b'\x1f\x8b':
+        import shutil
+        tmp = os.path.join(tmp_dir, f'{cid}_{ref}.nii')
+        shutil.copyfile(src, tmp)
+        src = tmp
+    return nib.load(src)
+
 def stage_cases(case_ids, raw_data, out_dir, remove: str | None) -> str:
     images = os.path.join(out_dir, 'imagesTs')
     os.makedirs(images, exist_ok=True)
@@ -22,8 +34,8 @@ def stage_cases(case_ids, raw_data, out_dir, remove: str | None) -> str:
             src = os.path.join(cdir, f'{cid}_{mod}.nii.gz')
             dst = os.path.join(images, f'{cid}_{code}.nii.gz')
             if mod == remove:
-                img = nib.load(src)
-                zeroed = nib.Nifti1Image(np.zeros_like(img.get_fdata()), img.affine, img.header)
+                img = load_geometry(cdir, cid, remove, out_dir)
+                zeroed = nib.Nifti1Image(np.zeros(img.shape, dtype=np.float32), img.affine)
                 nib.save(zeroed, dst)
             elif not os.path.exists(dst):
                 os.symlink(os.path.realpath(src), dst)
