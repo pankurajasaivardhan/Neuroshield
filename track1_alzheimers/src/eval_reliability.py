@@ -16,6 +16,17 @@ from shared.reliability.report import ReliabilityReport
 from .data import OASISDataset
 from . import train_model_a, train_model_b
 
+def load_checkpoint(model, path, device):
+    try:
+        obj = torch.load(path, map_location=device)
+    except Exception:
+        obj = torch.load(path, map_location=device, weights_only=False)
+    if not isinstance(obj, dict):
+        obj = obj.state_dict()
+    if 'state_dict' in obj and isinstance(obj['state_dict'], dict):
+        obj = obj['state_dict']
+    model.load_state_dict(obj)
+
 @torch.no_grad()
 def collect_logits_and_features(model, dataset, device, feature_hook_layer):
     feats = []
@@ -71,11 +82,11 @@ def main():
     models = {}
     if args.model_a:
         m = train_model_a.build_model()
-        m.load_state_dict(torch.load(args.model_a, map_location=device))
+        load_checkpoint(m, args.model_a, device)
         models['model_a'] = (m.to(device), resnet_feature_layer)
     if args.model_b:
         m = train_model_b.build_model()
-        m.load_state_dict(torch.load(args.model_b, map_location=device))
+        load_checkpoint(m, args.model_b, device)
         models['model_b'] = (m.to(device), vit_feature_layer)
     results = {'models': {}}
     fitted = {}
