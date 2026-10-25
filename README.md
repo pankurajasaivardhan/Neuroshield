@@ -11,46 +11,6 @@ evidence-grounded explanation when a prediction is unreliable.
 Research prototype. Not a clinically validated diagnostic system. Not for
 medical diagnosis.
 
-## Run it yourself (demo website)
-
-You do NOT need the training datasets. The trained models and the code are
-enough to analyze your own compatible MRI files on your own computer - free,
-no accounts, no cloud, CPU only.
-
-What you need:
-
-- A computer with about 4 GB of free memory and 7 GB of free disk
-- Python 3.10 or newer. Fully tested end-to-end on Linux (Kaggle, CPU).
-  On macOS Apple Silicon the pinned dependency wheels are verified available
-  for Python 3.12, but the first full Mac run is still pending - please open
-  an issue if something breaks. Windows is not tested - use WSL2.
-- Internet for the first run only (downloads ~1.7 GB of models + libraries)
-
-Steps:
-
-1. Get the code: `git clone https://github.com/pankurajasaivardhan/Neuroshield.git`
-   or click **Code > Download ZIP** on this page and unzip it.
-2. Run the demo:
-   - Mac: open the `demo/` folder and double-click **run_mac.command**
-     (step-by-step: [demo/SETUP_MAC.md](demo/SETUP_MAC.md))
-   - Linux: `bash demo/run_local.sh`
-3. The first run downloads the trained models automatically from
-   [Releases](https://github.com/pankurajasaivardhan/Neuroshield/releases/tag/demo-v1)
-   (3 Alzheimer's checkpoints + 1 tumor model bundle, weights only, no scans).
-
-4. Open http://localhost:8000 in your browser.
-
-Using the website:
-
-- Track 1 (Alzheimer's): upload one structural brain MRI
-  (.nii, .nii.gz, or an .hdr/.img pair; OASIS-style T1 scan).
-- Track 2 (brain tumor): upload the 4 BraTS sequences of one case
-  (FLAIR, T1, T1ce, T2) as .nii or .nii.gz files.
-- The site shows the prediction plus reliability signals and can abstain
-  when the models disagree or the input looks out of distribution.
-  Agreement between models is not proof a prediction is right - treat every
-  output as a research demo, never a diagnosis.
-
 ## Repository structure
 
 ```
@@ -205,3 +165,43 @@ degenerate findings are reported as found.
 - Always label numbers as validation or test results.
 - A failed repair is a valid result; report it.
 - Two tracks only: Alzheimer's classification and brain tumor segmentation.
+
+## Run it yourself (demo website)
+
+You do NOT need the training datasets. The trained models and the code are
+enough to analyze your own compatible MRI files on your own computer - free,
+no accounts, no cloud, CPU only.
+
+What you need:
+
+- A computer with about 4 GB of free memory and 7 GB of free disk
+- Python 3.10 or newer. Fully tested end-to-end on Linux (Kaggle, CPU).
+  On macOS Apple Silicon the pinned dependency wheels are verified available
+  for Python 3.12, but the first full Mac run is still pending - please open
+  an issue if something breaks. Windows is not tested - use WSL2.
+- Internet for the first run only (downloads ~1.7 GB of models + libraries)
+
+Steps:
+
+1. Get the code: `git clone https://github.com/pankurajasaivardhan/Neuroshield.git`
+   or click **Code > Download ZIP** on this page and unzip it.
+2. Run the demo:
+   - Mac: open the `demo/` folder and double-click **run_mac.command**
+     (step-by-step: [demo/SETUP_MAC.md](demo/SETUP_MAC.md))
+   - Linux: `bash demo/run_local.sh`
+3. The first run downloads the trained models automatically from
+   [Releases](https://github.com/pankurajasaivardhan/Neuroshield/releases/tag/demo-v1)
+   (3 Alzheimer's checkpoints + 1 tumor model bundle, weights only, no scans).
+
+4. Open http://localhost:8000 in your browser.
+
+Using the website:
+
+- Track 1 (Alzheimer's): upload one structural brain MRI
+  (.nii, .nii.gz, or an .hdr/.img pair; OASIS-style T1 scan).
+- Track 2 (brain tumor): upload the 4 BraTS sequences of one case
+  (FLAIR, T1, T1ce, T2) as .nii or .nii.gz files.
+- The site shows the prediction plus reliability signals and can abstain
+  when the models disagree or the input looks out of distribution.
+  Agreement between models is not proof a prediction is right - treat every
+  output as a research demo, never a diagnosis.
