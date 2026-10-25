@@ -34,9 +34,10 @@ if [ ! -f "$M/fold_0/checkpoint_final.pth" ]; then
     rm -rf "$tmp"
     [ -f "$M/fold_0/checkpoint_final.pth" ] || { echo "ERROR: unpack failed"; exit 1; }
   else
-    echo "NOTE: the tumor model bundle is still being published to the release"
-    echo "  (file neuroshield-track2-weights.zip under demo-v1). The Alzheimer's"
-    echo "  track works without it - re-run this script later to add tumor analysis."
+    echo "NOTE: could not download the tumor model bundle"
+    echo "  (neuroshield-track2-weights.zip from release demo-v1). Check your"
+    echo "  internet connection and try again. The Alzheimer's track works"
+    echo "  without it - re-run this script later to add tumor analysis."
   fi
 fi
 
