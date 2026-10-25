@@ -36,6 +36,10 @@ or on the GitHub page click **Code > Download ZIP** and unzip it.
    checkpoints + the tumor model bundle, from GitHub Releases - weights
    only, no scan data) and the AI libraries. Leave it running; when you see
    "NeuroShield on http://localhost:8000" it's ready.
+   - Publication status: the Alzheimer's checkpoints are live; the tumor
+     bundle is still being published. If it's not there yet, the script
+     prints a note and starts with the Alzheimer's track only - just
+     double-click again later to add tumor analysis.
 3. Open http://localhost:8000 in your browser.
 
 ## Step 4 - Analyze a scan
