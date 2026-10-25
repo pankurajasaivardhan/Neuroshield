@@ -77,7 +77,9 @@ disk, and internet for the first setup only.
      and wheel-checked against Python 3.12 on Apple Silicon specifically,
      so use 3.12 even if another version is already installed.
 2. Get the code (as above) and open the `demo/` folder.
-3. Double-click **run_mac.command** (~10 min the first time, ~10 sec after):
+3. Double-click **run_mac.command**. The first run takes a while - it
+   downloads ~1.7 GB of models plus the AI libraries, so the time depends
+   on your internet speed. Later starts take only seconds:
    - If macOS says it can't open an unidentified developer: right-click the
      file > Open > Open. (It's a text script - you can read every line.)
    - The first run downloads the trained models (~1.7 GB, from GitHub
