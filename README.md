@@ -87,9 +87,11 @@ disk, and internet for the first setup only.
 
 ## Step-by-step on Windows
 
-Windows is not tested on real hardware yet - the verified path is Linux.
-The recommended way on Windows is WSL2, which runs that same tested Linux
-path inside Windows. Native Windows steps are included below as untested.
+Only Linux (Kaggle, CPU) is tested end-to-end. We have NOT run the demo on
+Windows - neither under WSL2 nor natively. The recommended way on Windows is
+WSL2, because it runs the same Linux steps that are tested; but the WSL2
+route itself is untested by us, and the native Windows steps below are
+untested too. Please open an issue if either breaks.
 
 Option A - WSL2 (recommended, uses the tested Linux path):
 
