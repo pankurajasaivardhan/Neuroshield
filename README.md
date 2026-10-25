@@ -100,13 +100,18 @@ Option A - WSL2 (recommended, uses the tested Linux path):
 1. Open PowerShell as Administrator and run `wsl --install`, then restart
    when asked. (This installs Ubuntu; on older Windows see
    https://learn.microsoft.com/windows/wsl/install)
-2. Open "Ubuntu" from the Start menu. Inside it, get the code:
+2. Open "Ubuntu" from the Start menu and install the basics:
+   `sudo apt update && sudo apt install -y git curl unzip python3-pip`
+   On Ubuntu 24.04 or newer, also run `export PIP_BREAK_SYSTEM_PACKAGES=1`
+   (Ubuntu blocks pip installs into its system Python; inside a throwaway
+   WSL environment that is fine).
+3. Inside Ubuntu, get the code:
    `git clone https://github.com/pankurajasaivardhan/Neuroshield.git`
    (or download the ZIP on GitHub and unzip it inside Ubuntu).
-3. Run the demo: `cd Neuroshield && bash demo/run_local.sh`
+4. Run the demo: `cd Neuroshield && bash demo/run_local.sh`
    - The first run downloads the trained models (~1.7 GB) and the AI
      libraries; leave it running.
-4. Open http://localhost:8000 in your Windows browser (WSL2 forwards the
+5. Open http://localhost:8000 in your Windows browser (WSL2 forwards the
    port automatically).
 
 Option B - native Windows (untested - please open an issue if it breaks):
@@ -124,9 +129,10 @@ Option B - native Windows (untested - please open an issue if it breaks):
    and place them exactly here (the Mac/Linux scripts do this for you
    automatically; on native Windows it is manual for now):
    - `demo/artifacts/track1/model_b_vit_seed42_best.pt` (and seed123, seed2024)
-   - unzip `neuroshield-track2-weights.zip`; put `plans.json`, `dataset.json`
-     and `fold_0/checkpoint_final.pth` under
+   - extract `neuroshield-track2-weights.zip` INTO
      `demo/artifacts/track2/model/Dataset001_BraTS2020/nnUNetTrainer_100epochs__nnUNetPlans__2d/`
+     (the zip already has the right layout: `plans.json` and `dataset.json`
+     land directly in that folder, the checkpoint under its `fold_0/`)
 4. Start the server from the `demo/` folder:
    ```
    $env:NEUROSHIELD_ARTIFACTS="$PWD\artifacts"
