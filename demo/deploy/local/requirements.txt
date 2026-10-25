@@ -1,0 +1,15 @@
+# NeuroShield demo - pinned CPU dependencies.
+# This exact set (with torch/torchvision CPU wheels below) reproduced the
+# Kaggle verification outputs bit-identically for track 1 on Oct 25, 2026:
+# sub-01 -> P(dementia) 0.4104, sub-02 -> 0.2894, per-seed probs equal to 4 dp.
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
+nibabel==5.4.2
+numpy==2.2.6
+matplotlib==3.10.9
+# install with: pip install torch==2.14.1+cpu torchvision==0.29.1+cpu --index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+torchvision==0.29.1+cpu
+# Track 2 (tumor) only; version resolved Oct 25, 2026 (same day as the Kaggle verification run):
+nnunetv2==2.8.1
