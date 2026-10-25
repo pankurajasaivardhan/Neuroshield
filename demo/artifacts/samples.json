@@ -1,0 +1,42 @@
+{
+  "track1": [
+    {
+      "id": "ON_ds000114_sub01",
+      "name": "Public scan A",
+      "description": "Healthy adult T1 MRI (OpenNeuro ds000114, CC0)",
+      "path": "samples/track1/openneuro_ds000114_sub-01_T1w.nii.gz"
+    },
+    {
+      "id": "ON_ds000114_sub02",
+      "name": "Public scan B",
+      "description": "Healthy adult T1 MRI (OpenNeuro ds000114, CC0)",
+      "path": "samples/track1/openneuro_ds000114_sub-02_T1w.nii.gz"
+    },
+    {
+      "id": "ON_ds000114_sub03",
+      "name": "Public scan C",
+      "description": "Healthy adult T1 MRI (OpenNeuro ds000114, CC0)",
+      "path": "samples/track1/openneuro_ds000114_sub-03_T1w.nii.gz"
+    }
+  ],
+  "track2": [
+    {
+      "id": "BraTS20_Training_004",
+      "name": "Tumor case 1",
+      "description": "BraTS 2020 held-out case, 4 sequences",
+      "path": "samples/track2/BraTS20_Training_004"
+    },
+    {
+      "id": "BraTS20_Training_141",
+      "name": "Tumor case 2",
+      "description": "BraTS 2020 held-out case, 4 sequences",
+      "path": "samples/track2/BraTS20_Training_141"
+    },
+    {
+      "id": "BraTS20_Training_143",
+      "name": "Tumor case 3",
+      "description": "BraTS 2020 held-out case, 4 sequences",
+      "path": "samples/track2/BraTS20_Training_143"
+    }
+  ]
+}
