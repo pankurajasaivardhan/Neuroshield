@@ -101,17 +101,22 @@ Option A - WSL2 (recommended, uses the tested Linux path):
    when asked. (This installs Ubuntu; on older Windows see
    https://learn.microsoft.com/windows/wsl/install)
 2. Open "Ubuntu" from the Start menu and install the basics:
-   `sudo apt update && sudo apt install -y git curl unzip python3-pip`
-   On Ubuntu 24.04 or newer, also run `export PIP_BREAK_SYSTEM_PACKAGES=1`
-   (Ubuntu blocks pip installs into its system Python; inside a throwaway
-   WSL environment that is fine).
-3. Inside Ubuntu, get the code:
+   `sudo apt update && sudo apt install -y git curl unzip python3-pip python3-venv`
+3. Create a virtual environment so nothing touches Ubuntu's own Python,
+   and activate it (do this every new terminal before starting the app):
+   ```
+   python3 -m venv ~/neuroshield-venv
+   source ~/neuroshield-venv/bin/activate
+   ```
+4. Inside Ubuntu, get the code:
    `git clone https://github.com/pankurajasaivardhan/Neuroshield.git`
    (or download the ZIP on GitHub and unzip it inside Ubuntu).
-4. Run the demo: `cd Neuroshield && bash demo/run_local.sh`
+5. Run the demo: `cd Neuroshield && bash demo/run_local.sh`
+   - The run script uses whichever `python3` is active, so with the venv
+     activated all libraries install into it, not into Ubuntu's Python.
    - The first run downloads the trained models (~1.7 GB) and the AI
      libraries; leave it running.
-5. Open http://localhost:8000 in your Windows browser (WSL2 forwards the
+6. Open http://localhost:8000 in your Windows browser (WSL2 forwards the
    port automatically).
 
 Option B - native Windows (untested - please open an issue if it breaks):
