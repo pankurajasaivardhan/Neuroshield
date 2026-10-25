@@ -158,6 +158,16 @@ Option B - native Windows (untested - please open an issue if it breaks):
 - One interface, two separate models. Everything runs on CPU; a full tumor
   case takes a few minutes.
 
+No scan handy? For Track 1 you can download a public sample scan (healthy
+adult volunteers from OpenNeuro ds000114, CC0 - so a low dementia
+probability is expected): [sample A](https://github.com/pankurajasaivardhan/Neuroshield/releases/download/demo-v1/openneuro_ds000114_sub-01_T1w.nii.gz),
+[sample B](https://github.com/pankurajasaivardhan/Neuroshield/releases/download/demo-v1/openneuro_ds000114_sub-02_T1w.nii.gz),
+[sample C](https://github.com/pankurajasaivardhan/Neuroshield/releases/download/demo-v1/openneuro_ds000114_sub-03_T1w.nii.gz).
+These were the exact files used in the Linux verification run (sample A gave
+P(dementia) 0.4104, sample B 0.2894), so they double as an installation
+check. For Track 2, BraTS scans cannot be redistributed - use a case from
+your own licensed BraTS access.
+
 ## Repository structure
 
 ```
