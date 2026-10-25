@@ -20,8 +20,10 @@ no accounts, no cloud, CPU only.
 What you need:
 
 - A computer with about 4 GB of free memory and 7 GB of free disk
-- Python 3.10 or newer (Python 3.12 tested on macOS Apple Silicon; Linux
-  tested on Kaggle/Ubuntu). Windows is not tested - use WSL2.
+- Python 3.10 or newer. Fully tested end-to-end on Linux (Kaggle, CPU).
+  On macOS Apple Silicon the pinned dependency wheels are verified available
+  for Python 3.12, but the first full Mac run is still pending - please open
+  an issue if something breaks. Windows is not tested - use WSL2.
 - Internet for the first run only (downloads ~1.7 GB of models + libraries)
 
 Steps:
@@ -35,6 +37,11 @@ Steps:
 3. The first run downloads the trained models automatically from
    [Releases](https://github.com/pankurajasaivardhan/Neuroshield/releases/tag/demo-v1)
    (3 Alzheimer's checkpoints + 1 tumor model bundle, weights only, no scans).
+
+   **Publication status:** the 3 Alzheimer's checkpoints are live now; the
+   tumor model bundle is still being published. Until it lands, the
+   Alzheimer's track works fully and the scripts print a specific note
+   about the pending tumor file instead of failing.
 4. Open http://localhost:8000 in your browser.
 
 Using the website:
