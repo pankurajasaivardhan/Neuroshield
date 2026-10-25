@@ -22,6 +22,14 @@ repository's GitHub Release (weights only, no scan data), install CPU
 dependencies, and serve the app on port 8000 - real uploads, real inference.
 Needs about 4 GB free RAM.
 
+Publication status: the 3 Alzheimer's checkpoints are live on the Release;
+the tumor model bundle is still being published. The scripts print a
+specific note and start with the Alzheimer's track if it is not there yet.
+
+Tested end-to-end on Linux (Kaggle, CPU). On macOS Apple Silicon the pinned
+dependency wheels are verified available for Python 3.12; the first full
+Mac run is pending.
+
 ## Data, licensing and attribution
 
 - No MRI scans are bundled in this repository. The OASIS-1 Data Use Terms do
