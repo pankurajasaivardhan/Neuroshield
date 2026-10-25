@@ -16,6 +16,7 @@ verified results, run history, limitations and citations.
 
 **Contents:** [Run it yourself](#run-it-yourself-demo-website) -
 [Step-by-step on macOS](#step-by-step-on-macos-apple-silicon) -
+[Step-by-step on Windows](#step-by-step-on-windows) -
 [Using the website](#using-the-website) -
 [Repository structure](#repository-structure) -
 [Verified results](#verified-results) -
@@ -37,7 +38,8 @@ What you need:
   Fully tested end-to-end on Linux (Kaggle, CPU). On macOS Apple Silicon the
   pinned dependency wheels are verified available for Python 3.12, but the
   first full Mac run is still pending - please open an issue if something
-  breaks. Windows is not tested - use WSL2.
+  breaks. Windows: see the Windows section below (WSL2 recommended; native
+  Windows steps are included but not yet tested on a real Windows machine).
 - Internet for the first run only (downloads ~1.7 GB of models + libraries)
 
 Steps:
@@ -63,9 +65,11 @@ You need: a Mac with Apple Silicon (M1/M2/M3/M4) on macOS 14 or newer,
 ~4 GB free memory while the app runs (it peaks around 2.4 GB), ~7 GB free
 disk, and internet for the first setup only.
 
-1. Install Python 3.12 (once, ~2 min):
-   - Go to https://www.python.org/downloads/ and click the big yellow
-     "Download Python 3.12.x" button.
+1. Install Python 3.12 (once, ~2 min). The big button on python.org gives
+   the newest Python, NOT 3.12 - use this exact 3.12 release instead:
+   - Open https://www.python.org/downloads/release/python-31210/ and click
+     "macOS 64-bit universal2 installer" (Python 3.12.10, the last 3.12 with
+     a Mac installer).
    - Open the downloaded .pkg and click Continue / Install through the
      installer.
    - Open Terminal (Cmd+Space, type "Terminal", Enter) and type
@@ -80,6 +84,51 @@ disk, and internet for the first setup only.
      Releases - weights only, no scan data) and the AI libraries. Leave it
      running; when you see "NeuroShield on http://localhost:8000" it's ready.
 4. Open http://localhost:8000 in your browser.
+
+## Step-by-step on Windows
+
+Windows is not tested on real hardware yet - the verified path is Linux.
+The recommended way on Windows is WSL2, which runs that same tested Linux
+path inside Windows. Native Windows steps are included below as untested.
+
+Option A - WSL2 (recommended, uses the tested Linux path):
+
+1. Open PowerShell as Administrator and run `wsl --install`, then restart
+   when asked. (This installs Ubuntu; on older Windows see
+   https://learn.microsoft.com/windows/wsl/install)
+2. Open "Ubuntu" from the Start menu. Inside it, get the code:
+   `git clone https://github.com/pankurajasaivardhan/Neuroshield.git`
+   (or download the ZIP on GitHub and unzip it inside Ubuntu).
+3. Run the demo: `cd Neuroshield && bash demo/run_local.sh`
+   - The first run downloads the trained models (~1.7 GB) and the AI
+     libraries; leave it running.
+4. Open http://localhost:8000 in your Windows browser (WSL2 forwards the
+   port automatically).
+
+Option B - native Windows (untested - please open an issue if it breaks):
+
+1. Install Python 3.12 from https://www.python.org/downloads/release/python-31210/
+   ("Windows installer (64-bit)"). In the installer tick "Add python.exe to
+   PATH".
+2. Open PowerShell in the `demo/` folder and install dependencies:
+   ```
+   py -3.12 -m pip install torch==2.14.1+cpu torchvision==0.29.1+cpu --index-url https://download.pytorch.org/whl/cpu
+   py -3.12 -m pip install -r deploy/local/requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+   ```
+3. Download the 4 model files from
+   [Releases](https://github.com/pankurajasaivardhan/Neuroshield/releases/tag/demo-v1)
+   and place them exactly here (the Mac/Linux scripts do this for you
+   automatically; on native Windows it is manual for now):
+   - `demo/artifacts/track1/model_b_vit_seed42_best.pt` (and seed123, seed2024)
+   - unzip `neuroshield-track2-weights.zip`; put `plans.json`, `dataset.json`
+     and `fold_0/checkpoint_final.pth` under
+     `demo/artifacts/track2/model/Dataset001_BraTS2020/nnUNetTrainer_100epochs__nnUNetPlans__2d/`
+4. Start the server from the `demo/` folder:
+   ```
+   $env:NEUROSHIELD_ARTIFACTS="$PWD\artifacts"
+   py -3.12 -m uvicorn app:app --host 0.0.0.0 --port 8000 --app-dir server
+   ```
+5. Open http://localhost:8000 in your browser.
 
 ## Using the website
 
