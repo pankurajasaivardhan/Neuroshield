@@ -16,7 +16,7 @@ from shared.reliability import gate as gate_mod
 from shared.reliability.fingerprint import FailureFingerprint, FailureCase
 from shared.reliability.report import ReliabilityReport
 from shared.reliability.scan_eval import run_scan_level
-from .data import OASISDataset
+from .data import OASISDataset, OASISDatasetNotebookViT
 from . import train_model_a, train_model_b
 
 def load_checkpoint(model, path, device):
@@ -72,6 +72,7 @@ def main():
     ap.add_argument('--model-a', default=None, help='Model A checkpoint path')
     ap.add_argument('--model-b', default=None, help='Model B checkpoint path')
     ap.add_argument('--out', required=True)
+    ap.add_argument('--vit-input', choices=['repo', 'notebook'], default='repo', help="'notebook' = input pipeline the ViT was trained with; 'repo' = legacy data.py pipeline")
     ap.add_argument('--mc-passes', type=int, default=30)
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
@@ -93,6 +94,10 @@ def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     splits = {s: os.path.join(args.data_root, f'splits/{s}.csv') for s in ('train', 'val', 'test')}
     models = {}
+    def make_ds(name, split):
+        if name == 'model_b' and args.vit_input == 'notebook':
+            return OASISDatasetNotebookViT(splits[split])
+        return OASISDataset(splits[split])
     if args.model_a:
         m = train_model_a.build_model()
         load_checkpoint(m, args.model_a, device)
@@ -110,7 +115,7 @@ def main():
         scaler = None
         split_ood = {}
         for split in ('train', 'val', 'test'):
-            ds = OASISDataset(splits[split])
+            ds = make_ds(name, split)
             (logits, feats, labels, ids) = collect_logits_and_features(model, ds, device, feat_fn(model))
             if split == 'train':
                 ood_model = MahalanobisOOD()
@@ -140,7 +145,7 @@ def main():
         print(f'[{name}]', json.dumps(per_split, indent=2), flush=True)
     uncertainty = {}
     for (name, (model, _)) in models.items():
-        ds = OASISDataset(splits['test'])
+        ds = make_ds(name, 'test')
         sample_probs = []
         for i in range(len(ds)):
             (img, _, _) = ds[i]
@@ -150,7 +155,7 @@ def main():
     if len(models) == 2:
         prob_sets = []
         for (name, (model, _)) in models.items():
-            ds = OASISDataset(splits['test'])
+            ds = make_ds(name, 'test')
             (logits, _, labels, ids) = collect_logits_and_features(model, ds, device, resnet_feature_layer(model) if name == 'model_a' else vit_feature_layer(model))
             prob_sets.append(torch.softmax(torch.tensor(logits), dim=-1).numpy())
         dis = classification_disagreement(prob_sets)
@@ -159,7 +164,7 @@ def main():
     (model, feat_fn) = models[name0]
     gate_data = {}
     for split in ('val', 'test'):
-        ds = OASISDataset(splits[split])
+        ds = make_ds(name0, split)
         (logits, feats, labels, ids) = collect_logits_and_features(model, ds, device, feat_fn(model))
         scaler = fitted[name0]['scaler']
         probs = scaler.transform(logits) if scaler else torch.softmax(torch.tensor(logits), dim=-1).numpy()
@@ -191,18 +196,28 @@ def main():
     results['gate']['legacy_target_note'] = 'legacy target accepted error = median of binary validation errors; with ungated error below 0.5 that median is 0, so the legacy rule almost never accepts a cutoff below 1.0'
     results['slice_counts'] = {sp: int(len(OASISDataset(splits[sp]))) for sp in ('train', 'val', 'test')}
     results['scan_level'] = {}
+    results['scan_level_raw_prob_average'] = {}
+    results['slice_accuracy_test'] = {}
+    results['vit_input_pipeline'] = args.vit_input
     for (name, (mdl, ffn)) in models.items():
-        d = {}
+        d, d_raw = {}, {}
         for sp in ('val', 'test'):
-            ds = OASISDataset(splits[sp])
+            ds = make_ds(name, sp)
             (lg, ft, lb, idl) = collect_logits_and_features(mdl, ds, device, ffn(mdl))
             sc = fitted[name]['scaler']
             pr = sc.transform(lg) if sc else torch.softmax(torch.tensor(lg), dim=-1).numpy()
+            pr_raw = torch.softmax(torch.tensor(lg), dim=-1).numpy()
             d[sp] = dict(probs=pr, ood_lw=fitted[name]['ood_lw'].score(ft), ids=idl, labels=lb)
+            np.savez(os.path.join(args.out, f'logits_{name}_{sp}.npz'), logits=lg, labels=lb, scan_ids=np.array(idl), slice_idx=np.arange(len(idl)))
+            d_raw[sp] = dict(probs=pr_raw, ood_lw=d[sp]['ood_lw'], ids=idl, labels=lb)
         results['scan_level'][name] = run_scan_level(d['val'], d['test'])
+        results['scan_level_raw_prob_average'][name] = run_scan_level(d_raw['val'], d_raw['test'])
+        results['slice_accuracy_test'][name] = float((d['test']['probs'].argmax(1) == d['test']['labels']).mean())
     print('GATE_LEGACY', json.dumps(results['gate']['thresholds']), flush=True)
     print('GATE_V2', json.dumps(results['gate_v2']), flush=True)
     print('SLICE_COUNTS', json.dumps(results['slice_counts']), flush=True)
+    print('VIT_INPUT', args.vit_input, 'SLICE_ACC_TEST', json.dumps(results['slice_accuracy_test']), flush=True)
+    print('SCAN_LEVEL_RAW', json.dumps(results['scan_level_raw_prob_average'], default=str), flush=True)
     print('SCAN_LEVEL', json.dumps(results['scan_level'], indent=1, default=str), flush=True)
     overconf = []
     for (cid, p, lab, r) in zip(gate_data['test']['ids'], gate_data['test']['probs'], gate_data['test']['labels'], test_risk):
