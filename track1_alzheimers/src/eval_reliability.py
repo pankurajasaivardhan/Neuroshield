@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import hashlib
+import subprocess
 import numpy as np
 import torch
 from sklearn.metrics import accuracy_score
@@ -13,6 +15,7 @@ from shared.reliability.disagreement import classification_disagreement
 from shared.reliability import gate as gate_mod
 from shared.reliability.fingerprint import FailureFingerprint, FailureCase
 from shared.reliability.report import ReliabilityReport
+from shared.reliability.scan_eval import run_scan_level
 from .data import OASISDataset
 from . import train_model_a, train_model_b
 
@@ -72,6 +75,21 @@ def main():
     ap.add_argument('--mc-passes', type=int, default=30)
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
+    import shared.reliability.gate as _g
+    def _sha(p):
+        if not p: return None
+        h = hashlib.sha256()
+        with open(p, 'rb') as fh:
+            for ch in iter(lambda: fh.read(1 << 20), b''):
+                h.update(ch)
+        return h.hexdigest()
+    try:
+        commit = subprocess.run(['git', '-C', os.path.dirname(_g.__file__), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
+    except Exception:
+        commit = 'unknown'
+    prov = {'git_commit': commit, 'gate_module_path': _g.__file__, 'gate_modes_run': ['legacy', 'v2_target'],
+            'checkpoints': {'model_a': {'requested': args.model_a, 'sha256': _sha(args.model_a)}, 'model_b': {'requested': args.model_b, 'sha256': _sha(args.model_b)}}}
+    print('PROVENANCE', json.dumps(prov, indent=1), flush=True)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     splits = {s: os.path.join(args.data_root, f'splits/{s}.csv') for s in ('train', 'val', 'test')}
     models = {}
@@ -83,7 +101,7 @@ def main():
         m = train_model_b.build_model()
         load_checkpoint(m, args.model_b, device)
         models['model_b'] = (m.to(device), vit_feature_layer)
-    results = {'models': {}}
+    results = {'models': {}, 'provenance': prov}
     fitted = {}
     for (name, (model, feat_fn)) in models.items():
         per_split = {}
@@ -116,7 +134,7 @@ def main():
             'legacy_condition_number': ood_model.condition_number,
             'ledoit_wolf_condition_number': ood_lw.condition_number,
             'ledoit_wolf_shrinkage_intensity': ood_lw.shrinkage_intensity,
-            'note': 'ratios far above 1 mean the fitted covariance does not transfer to held-out in-distribution scans; conditioning is not proof of detection ability'}
+            'note': 'descriptive only: train distances are in-sample by construction, so a held-out/train ratio above 1 is expected and is not a transfer or detection verdict; conditioning is not proof of detection ability'}
         fitted[name] = {'ood': ood_model, 'ood_lw': ood_lw, 'scaler': scaler}
         results['models'][name] = per_split
         print(f'[{name}]', json.dumps(per_split, indent=2), flush=True)
@@ -170,6 +188,22 @@ def main():
                           'accepted_error_test': float(gd_t['errors'][acc2].mean()) if acc2.any() else None,
                           'ungated_error_test': float(gd_t['errors'].mean()),
                           'note': 'test numbers are evaluated once with a validation-fitted cutoff; slices of one scan are not independent'}
+    results['gate']['legacy_target_note'] = 'legacy target accepted error = median of binary validation errors; with ungated error below 0.5 that median is 0, so the legacy rule almost never accepts a cutoff below 1.0'
+    results['slice_counts'] = {sp: int(len(OASISDataset(splits[sp]))) for sp in ('train', 'val', 'test')}
+    results['scan_level'] = {}
+    for (name, (mdl, ffn)) in models.items():
+        d = {}
+        for sp in ('val', 'test'):
+            ds = OASISDataset(splits[sp])
+            (lg, ft, lb, idl) = collect_logits_and_features(mdl, ds, device, ffn(mdl))
+            sc = fitted[name]['scaler']
+            pr = sc.transform(lg) if sc else torch.softmax(torch.tensor(lg), dim=-1).numpy()
+            d[sp] = dict(probs=pr, ood_lw=fitted[name]['ood_lw'].score(ft), ids=idl, labels=lb)
+        results['scan_level'][name] = run_scan_level(d['val'], d['test'])
+    print('GATE_LEGACY', json.dumps(results['gate']['thresholds']), flush=True)
+    print('GATE_V2', json.dumps(results['gate_v2']), flush=True)
+    print('SLICE_COUNTS', json.dumps(results['slice_counts']), flush=True)
+    print('SCAN_LEVEL', json.dumps(results['scan_level'], indent=1, default=str), flush=True)
     overconf = []
     for (cid, p, lab, r) in zip(gate_data['test']['ids'], gate_data['test']['probs'], gate_data['test']['labels'], test_risk):
         pred = int(p.argmax())
