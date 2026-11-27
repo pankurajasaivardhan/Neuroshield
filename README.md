@@ -1,3 +1,5 @@
+> **Interim audit branch:** see [AUDIT_STATUS.md](AUDIT_STATUS.md). Code fixes are tested on synthetic data only and are not yet validated on real data. The FLAIR stability figure in `docs/figures` is stale (49 of 56 cases); regenerate with `python scripts/make_flair_figure.py`.
+
 # NeuroShield
 
 A two-track medical AI reliability project on brain MRI. NeuroShield does
