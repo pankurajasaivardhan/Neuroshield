@@ -8,7 +8,7 @@ import torch
 from sklearn.metrics import accuracy_score
 from shared.reliability.calibration import expected_calibration_error, brier_score, reliability_table, TemperatureScaler
 from shared.reliability.uncertainty import predictive_entropy, mutual_information, mc_dropout_probs
-from shared.reliability.ood import MahalanobisOOD
+from shared.reliability.ood import MahalanobisOOD, ood_overfit_ratio
 from shared.reliability.disagreement import classification_disagreement
 from shared.reliability import gate as gate_mod
 from shared.reliability.fingerprint import FailureFingerprint, FailureCase
@@ -47,11 +47,6 @@ def collect_logits_and_features(model, dataset, device, feature_hook_layer):
 
 def vit_feature_layer(model):
 
-    class MeanPool(torch.nn.Module):
-
-        def forward(self, x):
-            return x.mean(dim=1)
-    model.encoder.ln.register_forward_hook
     return _TapLayer(model.encoder.ln)
 
 class _TapLayer:
@@ -93,21 +88,36 @@ def main():
     for (name, (model, feat_fn)) in models.items():
         per_split = {}
         ood_model = None
+        ood_lw = None
         scaler = None
+        split_ood = {}
         for split in ('train', 'val', 'test'):
             ds = OASISDataset(splits[split])
             (logits, feats, labels, ids) = collect_logits_and_features(model, ds, device, feat_fn(model))
             if split == 'train':
                 ood_model = MahalanobisOOD()
                 ood_model.fit(feats, labels)
+                ood_lw = MahalanobisOOD(shrinkage='ledoit_wolf')
+                ood_lw.fit(feats, labels)
             if split == 'val':
                 scaler = TemperatureScaler()
                 scaler.fit(logits, labels)
             probs_raw = torch.softmax(torch.tensor(logits), dim=-1).numpy()
             probs_cal = scaler.transform(logits) if scaler else probs_raw
             ood_scores = ood_model.score(feats) if ood_model else np.zeros(len(labels))
-            per_split[split] = {'ece_raw': expected_calibration_error(probs_raw, labels), 'ece_calibrated': expected_calibration_error(probs_cal, labels), 'brier': brier_score(probs_cal, labels), 'accuracy': float(accuracy_score(labels, probs_cal.argmax(axis=1))), 'mean_ood': float(ood_scores.mean())}
-        fitted[name] = {'ood': ood_model, 'scaler': scaler}
+            lw_scores = ood_lw.score(feats) if ood_lw else np.zeros(len(labels))
+            split_ood[split] = (ood_scores, lw_scores)
+            per_split[split] = {'mean_ood_ledoit_wolf': float(lw_scores.mean()), 'ece_raw': expected_calibration_error(probs_raw, labels), 'ece_calibrated': expected_calibration_error(probs_cal, labels), 'brier': brier_score(probs_cal, labels), 'accuracy': float(accuracy_score(labels, probs_cal.argmax(axis=1))), 'mean_ood': float(ood_scores.mean())}
+        per_split['ood_diagnostics'] = {
+            'legacy_val_over_train': ood_overfit_ratio(split_ood['train'][0], split_ood['val'][0]),
+            'legacy_test_over_train': ood_overfit_ratio(split_ood['train'][0], split_ood['test'][0]),
+            'ledoit_wolf_val_over_train': ood_overfit_ratio(split_ood['train'][1], split_ood['val'][1]),
+            'ledoit_wolf_test_over_train': ood_overfit_ratio(split_ood['train'][1], split_ood['test'][1]),
+            'legacy_condition_number': ood_model.condition_number,
+            'ledoit_wolf_condition_number': ood_lw.condition_number,
+            'ledoit_wolf_shrinkage_intensity': ood_lw.shrinkage_intensity,
+            'note': 'ratios far above 1 mean the fitted covariance does not transfer to held-out in-distribution scans; conditioning is not proof of detection ability'}
+        fitted[name] = {'ood': ood_model, 'ood_lw': ood_lw, 'scaler': scaler}
         results['models'][name] = per_split
         print(f'[{name}]', json.dumps(per_split, indent=2), flush=True)
     uncertainty = {}
@@ -138,8 +148,9 @@ def main():
         conf = probs.max(axis=1)
         ent = predictive_entropy(probs)
         ood = fitted[name0]['ood'].score(feats)
+        ood_lw_scores = fitted[name0]['ood_lw'].score(feats)
         errors = (probs.argmax(axis=1) != labels).astype(float)
-        gate_data[split] = dict(conf=conf, ent=ent, ood=ood, errors=errors, labels=labels, ids=ids, probs=probs)
+        gate_data[split] = dict(conf=conf, ent=ent, ood=ood, ood_lw=ood_lw_scores, errors=errors, labels=labels, ids=ids, probs=probs)
     val_risk = gate_mod.risk_score(gate_data['val']['conf'], gate_data['val']['ent'], gate_data['val']['ood'])
     thresholds = gate_mod.select_thresholds(val_risk, gate_data['val']['errors'])
     test_risk = gate_mod.risk_score(gate_data['test']['conf'], gate_data['test']['ent'], gate_data['test']['ood'])
@@ -147,6 +158,18 @@ def main():
     decisions = gate_mod.decide(gate_data['test']['ids'], test_risk, thresholds.max_uncertainty, signals)
     curve = gate_mod.risk_coverage_curve(test_risk, gate_data['test']['errors'])
     results['gate'] = {'thresholds': thresholds.__dict__, 'decisions': [d.__dict__ for d in decisions], 'risk_coverage': curve[::max(1, len(curve) // 20)], 'test_error_ungated': float(gate_data['test']['errors'].mean())}
+    # Gate v2 (validation-only): fitted normaliser + target-error objective, Ledoit-Wolf OOD.
+    gd_v, gd_t = gate_data['val'], gate_data['test']
+    norm = gate_mod.RiskNormalizer.fit(gd_v['ent'], gd_v['ood_lw'])
+    v2_val_risk = norm.risk(gd_v['conf'], gd_v['ent'], gd_v['ood_lw'])
+    v2_test_risk = norm.risk(gd_t['conf'], gd_t['ent'], gd_t['ood_lw'])
+    th2 = gate_mod.select_thresholds_target(v2_val_risk, gd_v['errors'])
+    dec2 = gate_mod.decide(gd_t['ids'], v2_test_risk, th2.max_uncertainty, signals)
+    acc2 = np.array([d.decision.startswith('ACCEPT') for d in dec2])
+    results['gate_v2'] = {'thresholds': th2.__dict__, 'n_test': int(len(acc2)), 'coverage_test': float(acc2.mean()),
+                          'accepted_error_test': float(gd_t['errors'][acc2].mean()) if acc2.any() else None,
+                          'ungated_error_test': float(gd_t['errors'].mean()),
+                          'note': 'test numbers are evaluated once with a validation-fitted cutoff; slices of one scan are not independent'}
     overconf = []
     for (cid, p, lab, r) in zip(gate_data['test']['ids'], gate_data['test']['probs'], gate_data['test']['labels'], test_risk):
         pred = int(p.argmax())
