@@ -60,3 +60,24 @@ def scan_level_predictions(model, dataset: OASISDataset, device: str='cpu'):
             e = out.setdefault(sid, {'probs': [], 'label': int(label)})
             e['probs'].append(probs)
     return {sid: {'probs': np.mean(v['probs'], axis=0), 'label': v['label']} for (sid, v) in out.items()}
+
+
+class OASISDatasetNotebookViT(OASISDataset):
+    """Input pipeline of the ViT training notebook (03_train_model_b_final, cell 23):
+    slice index along the LAST axis, centre = size//2 + offset (clamped), 3 ADJACENT slices as the 3 channels,
+    percentile normalisation over the 3-slice stack, resize, ImageNet mean/std.
+    The default OASISDataset takes one slice along the FIRST axis repeated over 3 channels, which is a different view."""
+
+    def __getitem__(self, idx: int):
+        row = self.df.iloc[idx]
+        volume = nib.load(row['scan_path']).get_fdata().squeeze()
+        mid = volume.shape[2] // 2
+        center = mid + int(row.get('slice_offset', 0))
+        center = max(1, min(volume.shape[2] - 2, center))
+        stack = np.transpose(volume[:, :, center - 1:center + 2], (2, 0, 1)).astype(np.float32)
+        stack = normalize_mri_slice(stack)
+        t = torch.from_numpy(stack).unsqueeze(0)
+        t = torch.nn.functional.interpolate(t, size=(IMG_SIZE, IMG_SIZE), mode='bilinear', align_corners=False)[0]
+        mean = torch.tensor(IMAGENET_MEAN, dtype=torch.float32).view(3, 1, 1)
+        std = torch.tensor(IMAGENET_STD, dtype=torch.float32).view(3, 1, 1)
+        return ((t - mean) / std, torch.tensor(int(row['label']), dtype=torch.long), str(row['ID']))
