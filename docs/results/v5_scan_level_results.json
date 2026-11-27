@@ -1,0 +1,415 @@
+{
+ "provenance": {
+  "git_commit": "23ed0b190f6abdfd862920127cc47f963be8125e",
+  "gate_module_path": "/kaggle/working/Neuroshield/shared/reliability/gate.py",
+  "gate_modes_run": [
+   "legacy",
+   "v2_target"
+  ],
+  "checkpoints": {
+   "model_a": {
+    "requested": "/kaggle/input/notebooks/mohanroyal273/track1-model-a-resnet50-baseline/outputs/track1/model_a/model_a_resnet50_seed42_best.pt",
+    "sha256": "505027c83b2444bf1647f0f4c1c08d44407732c54e6c8e17824cfba46fd84310"
+   },
+   "model_b": {
+    "requested": "/kaggle/input/notebooks/mohanroyal273/03-train-model-b-final/model_b_vit_seed42_best.pt",
+    "sha256": "30e76d9a5338658ca0d0a45706d5bf6f739f5dd497ead3c18892eab7e1e87de8"
+   }
+  }
+ },
+ "scan_level": {
+  "model_a": {
+   "unit": "scan",
+   "n_val": 35,
+   "n_test": 36,
+   "n_val_slices": 175,
+   "n_test_slices": 180,
+   "aggregation": "validation-fitted temperature -> softmax -> mean per scan; OOD = mean slice Ledoit-Wolf score",
+   "scan_accuracy_test": 0.6944444444444444,
+   "scan_accuracy_val": 0.6857142857142857,
+   "methods": {
+    "gate_v2_scan": {
+     "val_curve": [
+      {
+       "coverage": 0.5,
+       "accepted_error": 0.16666666666666666,
+       "n_accepted": 18
+      },
+      {
+       "coverage": 0.6,
+       "accepted_error": 0.23809523809523808,
+       "n_accepted": 21
+      },
+      {
+       "coverage": 0.7,
+       "accepted_error": 0.28,
+       "n_accepted": 25
+      },
+      {
+       "coverage": 0.8,
+       "accepted_error": 0.2857142857142857,
+       "n_accepted": 28
+      },
+      {
+       "coverage": 0.9,
+       "accepted_error": 0.28125,
+       "n_accepted": 32
+      },
+      {
+       "coverage": 1.0,
+       "accepted_error": 0.3142857142857143,
+       "n_accepted": 35
+      }
+     ],
+     "test_curve": [
+      {
+       "coverage": 0.5,
+       "accepted_error": 0.2222222222222222,
+       "n_accepted": 18
+      },
+      {
+       "coverage": 0.6,
+       "accepted_error": 0.3181818181818182,
+       "n_accepted": 22
+      },
+      {
+       "coverage": 0.7,
+       "accepted_error": 0.3076923076923077,
+       "n_accepted": 26
+      },
+      {
+       "coverage": 0.8,
+       "accepted_error": 0.3103448275862069,
+       "n_accepted": 29
+      },
+      {
+       "coverage": 0.9,
+       "accepted_error": 0.30303030303030304,
+       "n_accepted": 33
+      },
+      {
+       "coverage": 1.0,
+       "accepted_error": 0.3055555555555556,
+       "n_accepted": 36
+      }
+     ],
+     "test_aurc": 0.15031381453795248,
+     "val_operating_point": {
+      "coverage": 0.6,
+      "cutoff": 0.45550189237134575,
+      "val_accepted_error": 0.23809523809523808,
+      "test_coverage": 0.7777777777777778,
+      "test_n_accepted": 28,
+      "test_accepted_error": 0.2857142857142857
+     }
+    },
+    "confidence_only": {
+     "val_curve": [
+      {
+       "coverage": 0.5,
+       "accepted_error": 0.2222222222222222,
+       "n_accepted": 18
+      },
+      {
+       "coverage": 0.6,
+       "accepted_error": 0.2857142857142857,
+       "n_accepted": 21
+      },
+      {
+       "coverage": 0.7,
+       "accepted_error": 0.32,
+       "n_accepted": 25
+      },
+      {
+       "coverage": 0.8,
+       "accepted_error": 0.2857142857142857,
+       "n_accepted": 28
+      },
+      {
+       "coverage": 0.9,
+       "accepted_error": 0.28125,
+       "n_accepted": 32
+      },
+      {
+       "coverage": 1.0,
+       "accepted_error": 0.3142857142857143,
+       "n_accepted": 35
+      }
+     ],
+     "test_curve": [
+      {
+       "coverage": 0.5,
+       "accepted_error": 0.2222222222222222,
+       "n_accepted": 18
+      },
+      {
+       "coverage": 0.6,
+       "accepted_error": 0.3181818181818182,
+       "n_accepted": 22
+      },
+      {
+       "coverage": 0.7,
+       "accepted_error": 0.3076923076923077,
+       "n_accepted": 26
+      },
+      {
+       "coverage": 0.8,
+       "accepted_error": 0.27586206896551724,
+       "n_accepted": 29
+      },
+      {
+       "coverage": 0.9,
+       "accepted_error": 0.2727272727272727,
+       "n_accepted": 33
+      },
+      {
+       "coverage": 1.0,
+       "accepted_error": 0.3055555555555556,
+       "n_accepted": 36
+      }
+     ],
+     "test_aurc": 0.14383523564558048,
+     "val_operating_point": {
+      "coverage": 0.9,
+      "cutoff": 0.5276983976364136,
+      "val_accepted_error": 0.28125,
+      "test_coverage": 0.8055555555555556,
+      "test_n_accepted": 29,
+      "test_accepted_error": 0.27586206896551724
+     }
+    }
+   },
+   "paired_bootstrap_gate_minus_conf": {
+    "by_coverage": {
+     "0.5": [
+      -0.11111111111111116,
+      0.11111111111111113
+     ],
+     "0.6": [
+      -0.13636363636363635,
+      0.09090909090909094
+     ],
+     "0.7": [
+      -0.11538461538461536,
+      0.11538461538461539
+     ],
+     "0.8": [
+      -0.06896551724137934,
+      0.10344827586206898
+     ],
+     "0.9": [
+      -0.06060606060606061,
+      0.09090909090909088
+     ],
+     "1.0": [
+      0.0,
+      0.0
+     ]
+    },
+    "aurc_diff_ci95": [
+     -0.03185179045092838,
+     0.03653047383650833
+    ],
+    "note": "descriptive paired bootstrap over scans; same test split reanalysed; no superiority conclusion"
+   },
+   "note": "descriptive; same test split reanalysed; single seed 42; no superiority conclusion"
+  },
+  "model_b": {
+   "unit": "scan",
+   "n_val": 35,
+   "n_test": 36,
+   "n_val_slices": 175,
+   "n_test_slices": 180,
+   "aggregation": "validation-fitted temperature -> softmax -> mean per scan; OOD = mean slice Ledoit-Wolf score",
+   "scan_accuracy_test": 0.6111111111111112,
+   "scan_accuracy_val": 0.5714285714285714,
+   "methods": {
+    "gate_v2_scan": {
+     "val_curve": [
+      {
+       "coverage": 0.5,
+       "accepted_error": 0.2777777777777778,
+       "n_accepted": 18
+      },
+      {
+       "coverage": 0.6,
+       "accepted_error": 0.3333333333333333,
+       "n_accepted": 21
+      },
+      {
+       "coverage": 0.7,
+       "accepted_error": 0.4,
+       "n_accepted": 25
+      },
+      {
+       "coverage": 0.8,
+       "accepted_error": 0.42857142857142855,
+       "n_accepted": 28
+      },
+      {
+       "coverage": 0.9,
+       "accepted_error": 0.4375,
+       "n_accepted": 32
+      },
+      {
+       "coverage": 1.0,
+       "accepted_error": 0.42857142857142855,
+       "n_accepted": 35
+      }
+     ],
+     "test_curve": [
+      {
+       "coverage": 0.5,
+       "accepted_error": 0.3333333333333333,
+       "n_accepted": 18
+      },
+      {
+       "coverage": 0.6,
+       "accepted_error": 0.3181818181818182,
+       "n_accepted": 22
+      },
+      {
+       "coverage": 0.7,
+       "accepted_error": 0.34615384615384615,
+       "n_accepted": 26
+      },
+      {
+       "coverage": 0.8,
+       "accepted_error": 0.41379310344827586,
+       "n_accepted": 29
+      },
+      {
+       "coverage": 0.9,
+       "accepted_error": 0.3939393939393939,
+       "n_accepted": 33
+      },
+      {
+       "coverage": 1.0,
+       "accepted_error": 0.3888888888888889,
+       "n_accepted": 36
+      }
+     ],
+     "test_aurc": 0.18331792728344454,
+     "val_operating_point": {
+      "coverage": 0.6,
+      "cutoff": 0.5318638219927019,
+      "val_accepted_error": 0.3333333333333333,
+      "test_coverage": 0.7222222222222222,
+      "test_n_accepted": 26,
+      "test_accepted_error": 0.34615384615384615
+     }
+    },
+    "confidence_only": {
+     "val_curve": [
+      {
+       "coverage": 0.5,
+       "accepted_error": 0.3333333333333333,
+       "n_accepted": 18
+      },
+      {
+       "coverage": 0.6,
+       "accepted_error": 0.2857142857142857,
+       "n_accepted": 21
+      },
+      {
+       "coverage": 0.7,
+       "accepted_error": 0.32,
+       "n_accepted": 25
+      },
+      {
+       "coverage": 0.8,
+       "accepted_error": 0.35714285714285715,
+       "n_accepted": 28
+      },
+      {
+       "coverage": 0.9,
+       "accepted_error": 0.40625,
+       "n_accepted": 32
+      },
+      {
+       "coverage": 1.0,
+       "accepted_error": 0.42857142857142855,
+       "n_accepted": 35
+      }
+     ],
+     "test_curve": [
+      {
+       "coverage": 0.5,
+       "accepted_error": 0.2777777777777778,
+       "n_accepted": 18
+      },
+      {
+       "coverage": 0.6,
+       "accepted_error": 0.2727272727272727,
+       "n_accepted": 22
+      },
+      {
+       "coverage": 0.7,
+       "accepted_error": 0.34615384615384615,
+       "n_accepted": 26
+      },
+      {
+       "coverage": 0.8,
+       "accepted_error": 0.41379310344827586,
+       "n_accepted": 29
+      },
+      {
+       "coverage": 0.9,
+       "accepted_error": 0.42424242424242425,
+       "n_accepted": 33
+      },
+      {
+       "coverage": 1.0,
+       "accepted_error": 0.3888888888888889,
+       "n_accepted": 36
+      }
+     ],
+     "test_aurc": 0.17902499799051524,
+     "val_operating_point": {
+      "coverage": 0.6,
+      "cutoff": 0.5780321955680847,
+      "val_accepted_error": 0.2857142857142857,
+      "test_coverage": 0.6111111111111112,
+      "test_n_accepted": 22,
+      "test_accepted_error": 0.2727272727272727
+     }
+    }
+   },
+   "paired_bootstrap_gate_minus_conf": {
+    "by_coverage": {
+     "0.5": [
+      -0.05555555555555558,
+      0.16666666666666669
+     ],
+     "0.6": [
+      -0.04545454545454547,
+      0.13636363636363638
+     ],
+     "0.7": [
+      -0.07692307692307693,
+      0.07692307692307693
+     ],
+     "0.8": [
+      -0.06896551724137934,
+      0.06896551724137931
+     ],
+     "0.9": [
+      -0.09090909090909088,
+      0.030303030303030304
+     ],
+     "1.0": [
+      0.0,
+      0.0
+     ]
+    },
+    "aurc_diff_ci95": [
+     -0.019270289097875315,
+     0.024323707901294053
+    ],
+    "note": "descriptive paired bootstrap over scans; same test split reanalysed; no superiority conclusion"
+   },
+   "note": "descriptive; same test split reanalysed; single seed 42; no superiority conclusion"
+  }
+ },
+ "source": "Kaggle notebook mohanroyal273/notebooke0cf27f81b Version 5 log (549.7 s run)"
+}
