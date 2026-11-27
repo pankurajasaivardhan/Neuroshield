@@ -1,0 +1,9 @@
+quantity,estimate,ci95_low,ci95_high,n,method
+T2 A-vs-B foreground disagreement rate (56 test cases),0.3688,0.3144,0.4265,56,case-level bootstrap
+T2 A-vs-B agreement IoU necrotic (test),0.3578,0.2890,0.4277,56,case-level bootstrap
+T2 A-vs-B agreement IoU edema (test),0.5938,0.5358,0.6486,56,case-level bootstrap
+T2 A-vs-B agreement IoU enhancing (test),0.5750,0.4977,0.6500,56,case-level bootstrap
+T2 FLAIR-removal stability Dice (all 56 cases),0.4176,0.3466,0.4859,56,case-level bootstrap; matches run-summary mean 0.4176
+T2 unstable fraction after FLAIR removal (56 cases),0.9107,0.8074,0.9613,56,Wilson 95%
+T2 unstable fraction after FLAIR removal (51/56 from run summary),0.9107,0.8074,0.9613,56,Wilson 95%
+"T1 single-model accuracy 26/36 scans (ViT seeds 42,123; ResNet seeds 123,2024)",0.7222,0.5601,0.8415,36,"Wilson 95%, scans are independent subjects, one model"
