@@ -22,8 +22,11 @@ Private Kaggle notebook, Version 6, 526 s, GPU. Repository commit b5f9f68e7872ea
 - All intervals include 0. No ranking or advantage is claimed, and the intervals do not show equivalence.
 - Raw-probability averaging sensitivity: same accepted-error counts for both models; ViT difference CI -0.026 to 0.023.
 
+## Model disagreement with the matched ViT input (test, 180 slices)
+- Label mismatch fraction 0.2611 (47/180), against 0.394 (71/180) with the repository input. Mean JS divergence 0.0187 (median 0.0078; 20 slices above 0.05, 4 above 0.10, max 0.157), against 0.0273 before. Per-slice values: `v6_disagreement_matched.json`. They were read from `reliability_results.json` in the private Kaggle run output page (the npz files were not downloaded).
+
 ## Not recomputed
-- Slice-level ResNet vs ViT disagreement (39.4%, JS 0.0273) and the ViT side of Fig. 7. Still invalid for the notebook-trained ViT until recomputed from the saved logits.
+- The original-run ViT gate, OOD and risk-coverage sweep (Fig. 9 of the paper) remain legacy.
 - The per-model logits (`logits_model_{a,b}_{val,test}.npz`) are in the private Kaggle run output; they are not in this repository.
 
 Files: `v6_scan_level_results.json`, `v6_scan_level_test_k_of_n.csv`, `v6_run_log.txt` (this folder).
