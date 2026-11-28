@@ -23,7 +23,7 @@ This file records what the reliability audit changed, what was run, and what is 
 - UNETR validation and test tables were checked against the Kaggle outputs.
 
 ## Stale figure
-`docs/figures/fig_flair_stability.pdf` is the OLD figure: it plots 49 cases under an n=56 label. The browser upload of the corrected PDF was rejected, so it is not in the repository. Regenerate it from the 56-case CSV with `python scripts/make_flair_figure.py` (prints `n=56 mean=0.4176 unstable(<=0.8)=51`).
+`docs/figures/fig_flair_stability.pdf` is the OLD figure: it plots 49 cases under an n=56 label. The browser upload of the corrected PDF (and of a PNG) was rejected, so the PDF is still old. The corrected 56-case figure is committed as text: `docs/figures/fig_flair_stability_n56.svg` (rendered from the verified CSV; n=56, mean 0.4176, 51 unstable). It can also be regenerated with `python scripts/make_flair_figure.py`.
 
 ## Not included
 No scans, checkpoints or credentials. The OASIS terms and Kaggle dataset visibility are tracked outside this repository and are not fully resolved.
