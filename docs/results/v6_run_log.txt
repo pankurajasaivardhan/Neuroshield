@@ -1,0 +1,578 @@
+Current URL: https://www.kaggle.com/code/mohanroyal273/notebooke0cf27f81b
+
+In [1]:
+# PATCHED-CODE real-data run (branch improve/reliability-audit). Legacy version 3 = original code. Track 1 reliability eval: Model A (ResNet-50) + Model B (ViT-B/16) on OASIS test scans
+import os, glob, subprocess, sys, json
+import pandas as pd
+os.chdir('/kaggle/working')
+if not os.path.isdir('Neuroshield'):
+    subprocess.run(['git', 'clone', '--depth', '1', '-b', 'improve/reliability-audit', 'https://github.com/pankurajasaivardhan/Neuroshield.git'], check=True)
+ROOT = os.path.dirname(os.path.dirname(glob.glob('/kaggle/input/**/splits/train.csv', recursive=True)[0]))
+print('dataset ROOT:', ROOT)
+OUT_DATA = '/kaggle/working/oasis'
+os.makedirs(f'{OUT_DATA}/splits', exist_ok=True)
+for s in ('train', 'val', 'test'):
+    df = pd.read_csv(f'{ROOT}/splits/{s}.csv')
+    df['scan_path'] = df['scan_path'].apply(lambda x: os.path.join(ROOT, 'data', str(x).split('../../data/oasis/')[-1]))
+    missing = [p for p in df['scan_path'] if not os.path.exists(p)]
+    assert not missing, f'{s}: {len(missing)} missing scans, e.g. {missing[:2]}'
+    df.to_csv(f'{OUT_DATA}/splits/{s}.csv', index=False)
+    print(s, len(df), 'scans ok')
+print('A:', glob.glob('/kaggle/input/**/model_a_resnet50_seed42_best.pt', recursive=True))
+print('B:', glob.glob('/kaggle/input/**/model_b_vit_seed42_best.pt', recursive=True))
+
+Cloning into 'Neuroshield'...
+
+dataset ROOT: /kaggle/input/notebooks/mohanroyal273/track1-model-a-resnet50-baseline/track1_data
+train 164 scans ok
+val 35 scans ok
+test 36 scans ok
+A: ['/kaggle/input/notebooks/mohanroyal273/track1-model-a-resnet50-baseline/outputs/track1/model_a/model_a_resnet50_seed42_best.pt']
+B: ['/kaggle/input/notebooks/mohanroyal273/track1-model-a-resnet50-baseline/neuroshield_repo/outputs/alzheimers/model_b/checkpoints/model_b_vit_seed42_best.pt', '/kaggle/input/notebooks/mohanroyal273/03-train-model-b-final/model_b_vit_seed42_best.pt']
+
+In [2]:
+import subprocess, os, glob, json, sys
+os.chdir('/kaggle/working/Neuroshield')
+r = subprocess.run([sys.executable, '-m', 'track1_alzheimers.src.eval_reliability',
+                    '--data-root', '/kaggle/working/oasis',
+                    '--model-a', glob.glob('/kaggle/input/**/model_a_resnet50_seed42_best.pt', recursive=True)[0],
+                    '--model-b', [p for p in glob.glob('/kaggle/input/**/model_b_vit_seed42_best.pt', recursive=True) if '03-train-model-b-final' in p][0],
+                    '--vit-input', 'notebook',
+                    '--out', '/kaggle/working/outputs'])
+print('exit', r.returncode)
+assert r.returncode == 0, 'reliability eval failed - see log'
+res = json.load(open('/kaggle/working/outputs/reliability_results.json'))
+for name, splits in res['models'].items():
+    print(name, json.dumps(splits['test'], indent=1))
+print('gate:', json.dumps(res['gate']['thresholds'], indent=1))
+print('SAVED', sorted(glob.glob('/kaggle/working/outputs/*')))
+
+PROVENANCE {
+ "git_commit": "b5f9f68e7872eab7b5e737d9debede7c682cd8d0",
+ "gate_module_path": "/kaggle/working/Neuroshield/shared/reliability/gate.py",
+ "gate_modes_run": [
+  "legacy",
+  "v2_target"
+ ],
+ "checkpoints": {
+  "model_a": {
+   "requested": "/kaggle/input/notebooks/mohanroyal273/track1-model-a-resnet50-baseline/outputs/track1/model_a/model_a_resnet50_seed42_best.pt",
+   "sha256": "505027c83b2444bf1647f0f4c1c08d44407732c54e6c8e17824cfba46fd84310"
+  },
+  "model_b": {
+   "requested": "/kaggle/input/notebooks/mohanroyal273/03-train-model-b-final/model_b_vit_seed42_best.pt",
+   "sha256": "30e76d9a5338658ca0d0a45706d5bf6f739f5dd497ead3c18892eab7e1e87de8"
+  }
+ }
+}
+Downloading: "https://download.pytorch.org/models/resnet50-0676ba61.pth" to /root/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+
+100%|██████████| 97.8M/97.8M [00:00<00:00, 255MB/s]
+
+Downloading: "https://download.pytorch.org/models/vit_b_16-c867db91.pth" to /root/.cache/torch/hub/checkpoints/vit_b_16-c867db91.pth
+
+100%|██████████| 330M/330M [00:01<00:00, 203MB/s]
+
+[model_a] {
+  "train": {
+    "mean_ood_ledoit_wolf": 614.1131844617337,
+    "ece_raw": 0.20073233951882613,
+    "ece_calibrated": 0.20073233951882613,
+    "brier": 0.16623216722143971,
+    "accuracy": 0.948780487804878,
+    "mean_ood": 816.9204181733235
+  },
+  "val": {
+    "mean_ood_ledoit_wolf": 2079.7065958736093,
+    "ece_raw": 0.0691389046396528,
+    "ece_calibrated": 0.07167525904519219,
+    "brier": 0.4284745658821948,
+    "accuracy": 0.6742857142857143,
+    "mean_ood": 9036971.736767936
+  },
+  "test": {
+    "mean_ood_ledoit_wolf": 1955.3292209415413,
+    "ece_raw": 0.09147700170675914,
+    "ece_calibrated": 0.08290421134895747,
+    "brier": 0.4357642622066646,
+    "accuracy": 0.6111111111111112,
+    "mean_ood": 8492485.186425362
+  },
+  "ood_diagnostics": {
+    "legacy_val_over_train": 11062.242460501937,
+    "legacy_test_over_train": 10395.731331351713,
+    "ledoit_wolf_val_over_train": 3.386520023497719,
+    "ledoit_wolf_test_over_train": 3.1839883435418748,
+    "legacy_condition_number": 7922352.84235093,
+    "ledoit_wolf_condition_number": 1044.2280993062304,
+    "ledoit_wolf_shrinkage_intensity": 0.09685532779918668,
+    "note": "descriptive only: train distances are in-sample by construction, so a held-out/train ratio above 1 is expected and is not a transfer or detection verdict; conditioning is not proof of detection ability"
+  }
+}
+[model_b] {
+  "train": {
+    "mean_ood_ledoit_wolf": 506.23063090771706,
+    "ece_raw": 0.05925774908647305,
+    "ece_calibrated": 0.05925774908647305,
+    "brier": 0.3421809714421783,
+    "accuracy": 0.7463414634146341,
+    "mean_ood": 735.3392525559268
+  },
+  "val": {
+    "mean_ood_ledoit_wolf": 1708.339730127563,
+    "ece_raw": 0.07606663431440079,
+    "ece_calibrated": 0.07371951682226999,
+    "brier": 0.42707070278422327,
+    "accuracy": 0.7028571428571428,
+    "mean_ood": 10298.39849901539
+  },
+  "test": {
+    "mean_ood_ledoit_wolf": 1339.2264649830222,
+    "ece_raw": 0.07297616534762912,
+    "ece_calibrated": 0.09924845861064063,
+    "brier": 0.4509888136676433,
+    "accuracy": 0.6388888888888888,
+    "mean_ood": 7866.178393347553
+  },
+  "ood_diagnostics": {
+    "legacy_val_over_train": 14.004962285393757,
+    "legacy_test_over_train": 10.697345974672125,
+    "ledoit_wolf_val_over_train": 3.374627345374886,
+    "ledoit_wolf_test_over_train": 2.6454868259980016,
+    "legacy_condition_number": 477894.1153727995,
+    "ledoit_wolf_condition_number": 4929.493943432781,
+    "ledoit_wolf_shrinkage_intensity": 0.025934563743347062,
+    "note": "descriptive only: train distances are in-sample by construction, so a held-out/train ratio above 1 is expected and is not a transfer or detection verdict; conditioning is not proof of detection ability"
+  }
+}
+
+/kaggle/working/Neuroshield/shared/reliability/uncertainty.py:43: UserWarning: mc_dropout_probs: model has no active (p>0) nn.Dropout modules; MC Dropout uncertainty will be zero.
+  warnings.warn('mc_dropout_probs: model has no active (p>0) nn.Dropout modules; MC Dropout uncertainty will be zero.')
+/kaggle/working/Neuroshield/shared/reliability/uncertainty.py:43: UserWarning: mc_dropout_probs: model has no active (p>0) nn.Dropout modules; MC Dropout uncertainty will be zero.
+  warnings.warn('mc_dropout_probs: model has no active (p>0) nn.Dropout modules; MC Dropout uncertainty will be zero.')
+
+GATE_LEGACY {"max_uncertainty": 1.0, "max_ood": Infinity, "min_confidence": 0.0, "source": "validation risk cutoff=1.00, ungated_error=0.326", "degenerate": false}
+GATE_V2 {"thresholds": {"max_uncertainty": 0.5205476182933653, "max_ood": Infinity, "min_confidence": 0.0, "source": "validation risk cutoff=0.521, coverage=0.58, target_error=0.244, ungated_error=0.326", "degenerate": false}, "n_test": 180, "coverage_test": 0.5833333333333334, "accepted_error_test": 0.3142857142857143, "ungated_error_test": 0.3888888888888889, "note": "test numbers are evaluated once with a validation-fitted cutoff; slices of one scan are not independent"}
+SLICE_COUNTS {"train": 820, "val": 175, "test": 180}
+VIT_INPUT notebook SLICE_ACC_TEST {"model_a": 0.6111111111111112, "model_b": 0.6388888888888888}
+SCAN_LEVEL_RAW {"model_a": {"unit": "scan", "n_val": 35, "n_test": 36, "n_val_slices": 175, "n_test_slices": 180, "aggregation": "validation-fitted temperature -> softmax -> mean per scan; OOD = mean slice Ledoit-Wolf score", "scan_accuracy_test": 0.6944444444444444, "scan_accuracy_val": 0.6857142857142857, "methods": {"gate_v2_scan": {"val_curve": [{"coverage": 0.5, "accepted_error": 0.16666666666666666, "n_accepted": 18}, {"coverage": 0.6, "accepted_error": 0.23809523809523808, "n_accepted": 21}, {"coverage": 0.7, "accepted_error": 0.28, "n_accepted": 25}, {"coverage": 0.8, "accepted_error": 0.2857142857142857, "n_accepted": 28}, {"coverage": 0.9, "accepted_error": 0.28125, "n_accepted": 32}, {"coverage": 1.0, "accepted_error": 0.3142857142857143, "n_accepted": 35}], "test_curve": [{"coverage": 0.5, "accepted_error": 0.2222222222222222, "n_accepted": 18}, {"coverage": 0.6, "accepted_error": 0.3181818181818182, "n_accepted": 22}, {"coverage": 0.7, "accepted_error": 0.3076923076923077, "n_accepted": 26}, {"coverage": 0.8, "accepted_error": 0.3103448275862069, "n_accepted": 29}, {"coverage": 0.9, "accepted_error": 0.30303030303030304, "n_accepted": 33}, {"coverage": 1.0, "accepted_error": 0.3055555555555556, "n_accepted": 36}], "test_aurc": 0.15031381453795248, "val_operating_point": {"coverage": 0.6, "cutoff": 0.4553204757008643, "val_accepted_error": 0.23809523809523808, "test_coverage": 0.7777777777777778, "test_n_accepted": 28, "test_accepted_error": 0.2857142857142857}}, "confidence_only": {"val_curve": [{"coverage": 0.5, "accepted_error": 0.2222222222222222, "n_accepted": 18}, {"coverage": 0.6, "accepted_error": 0.2857142857142857, "n_accepted": 21}, {"coverage": 0.7, "accepted_error": 0.32, "n_accepted": 25}, {"coverage": 0.8, "accepted_error": 0.2857142857142857, "n_accepted": 28}, {"coverage": 0.9, "accepted_error": 0.28125, "n_accepted": 32}, {"coverage": 1.0, "accepted_error": 0.3142857142857143, "n_accepted": 35}], "test_curve": [{"coverage": 0.5, "accepted_error": 0.2222222222222222, "n_accepted": 18}, {"coverage": 0.6, "accepted_error": 0.3181818181818182, "n_accepted": 22}, {"coverage": 0.7, "accepted_error": 0.3076923076923077, "n_accepted": 26}, {"coverage": 0.8, "accepted_error": 0.27586206896551724, "n_accepted": 29}, {"coverage": 0.9, "accepted_error": 0.2727272727272727, "n_accepted": 33}, {"coverage": 1.0, "accepted_error": 0.3055555555555556, "n_accepted": 36}], "test_aurc": 0.14383523564558048, "val_operating_point": {"coverage": 0.9, "cutoff": 0.5275510549545288, "val_accepted_error": 0.28125, "test_coverage": 0.8055555555555556, "test_n_accepted": 29, "test_accepted_error": 0.27586206896551724}}}, "paired_bootstrap_gate_minus_conf": {"by_coverage": {"0.5": [-0.11111111111111116, 0.11111111111111113], "0.6": [-0.13636363636363635, 0.09090909090909094], "0.7": [-0.11538461538461536, 0.11538461538461539], "0.8": [-0.06896551724137934, 0.10344827586206898], "0.9": [-0.06060606060606061, 0.09090909090909088], "1.0": [0.0, 0.0]}, "aurc_diff_ci95": [-0.03185179045092838, 0.03653047383650833], "note": "descriptive paired bootstrap over scans; same test split reanalysed; no superiority conclusion"}, "note": "descriptive; same test split reanalysed; single seed 42; no superiority conclusion"}, "model_b": {"unit": "scan", "n_val": 35, "n_test": 36, "n_val_slices": 175, "n_test_slices": 180, "aggregation": "validation-fitted temperature -> softmax -> mean per scan; OOD = mean slice Ledoit-Wolf score", "scan_accuracy_test": 0.7222222222222222, "scan_accuracy_val": 0.6571428571428571, "methods": {"gate_v2_scan": {"val_curve": [{"coverage": 0.5, "accepted_error": 0.16666666666666666, "n_accepted": 18}, {"coverage": 0.6, "accepted_error": 0.23809523809523808, "n_accepted": 21}, {"coverage": 0.7, "accepted_error": 0.28, "n_accepted": 25}, {"coverage": 0.8, "accepted_error": 0.32142857142857145, "n_accepted": 28}, {"coverage": 0.9, "accepted_error": 0.3125, "n_accepted": 32}, {"coverage": 1.0, "accepted_error": 0.34285714285714286, "n_accepted": 35}], "test_curve": [{"coverage": 0.5, "accepted_error": 0.2777777777777778, "n_accepted": 18}, {"coverage": 0.6, "accepted_error": 0.22727272727272727, "n_accepted": 22}, {"coverage": 0.7, "accepted_error": 0.23076923076923078, "n_accepted": 26}, {"coverage": 0.8, "accepted_error": 0.27586206896551724, "n_accepted": 29}, {"coverage": 0.9, "accepted_error": 0.30303030303030304, "n_accepted": 33}, {"coverage": 1.0, "accepted_error": 0.2777777777777778, "n_accepted": 36}], "test_aurc": 0.1314712107815556, "val_operating_point": {"coverage": 0.6, "cutoff": 0.531435325396199, "val_accepted_error": 0.23809523809523808, "test_coverage": 0.6944444444444444, "test_n_accepted": 25, "test_accepted_error": 0.24}}, "confidence_only": {"val_curve": [{"coverage": 0.5, "accepted_error": 0.1111111111111111, "n_accepted": 18}, {"coverage": 0.6, "accepted_error": 0.14285714285714285, "n_accepted": 21}, {"coverage": 0.7, "accepted_error": 0.24, "n_accepted": 25}, {"coverage": 0.8, "accepted_error": 0.2857142857142857, "n_accepted": 28}, {"coverage": 0.9, "accepted_error": 0.34375, "n_accepted": 32}, {"coverage": 1.0, "accepted_error": 0.34285714285714286, "n_accepted": 35}], "test_curve": [{"coverage": 0.5, "accepted_error": 0.2777777777777778, "n_accepted": 18}, {"coverage": 0.6, "accepted_error": 0.2727272727272727, "n_accepted": 22}, {"coverage": 0.7, "accepted_error": 0.2692307692307692, "n_accepted": 26}, {"coverage": 0.8, "accepted_error": 0.2413793103448276, "n_accepted": 29}, {"coverage": 0.9, "accepted_error": 0.24242424242424243, "n_accepted": 33}, {"coverage": 1.0, "accepted_error": 0.2777777777777778, "n_accepted": 36}], "test_aurc": 0.13035393725048897, "val_operating_point": {"coverage": 0.6, "cutoff": 0.5967923998832703, "val_accepted_error": 0.14285714285714285, "test_coverage": 0.75, "test_n_accepted": 27, "test_accepted_error": 0.25925925925925924}}}, "paired_bootstrap_gate_minus_conf": {"by_coverage": {"0.5": [-0.16666666666666669, 0.05555555555555555], "0.6": [-0.13636363636363635, 0.04545454545454547], "0.7": [-0.07692307692307693, 0.07692307692307693], "0.8": [-0.03448275862068967, 0.10344827586206898], "0.9": [0.0, 0.09090909090909091], "1.0": [0.0, 0.0]}, "aurc_diff_ci95": [-0.025932400932400915, 0.023281890523269844], "note": "descriptive paired bootstrap over scans; same test split reanalysed; no superiority conclusion"}, "note": "descriptive; same test split reanalysed; single seed 42; no superiority conclusion"}}
+SCAN_LEVEL {
+ "model_a": {
+  "unit": "scan",
+  "n_val": 35,
+  "n_test": 36,
+  "n_val_slices": 175,
+  "n_test_slices": 180,
+  "aggregation": "validation-fitted temperature -> softmax -> mean per scan; OOD = mean slice Ledoit-Wolf score",
+  "scan_accuracy_test": 0.6944444444444444,
+  "scan_accuracy_val": 0.6857142857142857,
+  "methods": {
+   "gate_v2_scan": {
+    "val_curve": [
+     {
+      "coverage": 0.5,
+      "accepted_error": 0.16666666666666666,
+      "n_accepted": 18
+     },
+     {
+      "coverage": 0.6,
+      "accepted_error": 0.23809523809523808,
+      "n_accepted": 21
+     },
+     {
+      "coverage": 0.7,
+      "accepted_error": 0.28,
+      "n_accepted": 25
+     },
+     {
+      "coverage": 0.8,
+      "accepted_error": 0.2857142857142857,
+      "n_accepted": 28
+     },
+     {
+      "coverage": 0.9,
+      "accepted_error": 0.28125,
+      "n_accepted": 32
+     },
+     {
+      "coverage": 1.0,
+      "accepted_error": 0.3142857142857143,
+      "n_accepted": 35
+     }
+    ],
+    "test_curve": [
+     {
+      "coverage": 0.5,
+      "accepted_error": 0.2222222222222222,
+      "n_accepted": 18
+     },
+     {
+      "coverage": 0.6,
+      "accepted_error": 0.3181818181818182,
+      "n_accepted": 22
+     },
+     {
+      "coverage": 0.7,
+      "accepted_error": 0.3076923076923077,
+      "n_accepted": 26
+     },
+     {
+      "coverage": 0.8,
+      "accepted_error": 0.3103448275862069,
+      "n_accepted": 29
+     },
+     {
+      "coverage": 0.9,
+      "accepted_error": 0.30303030303030304,
+      "n_accepted": 33
+     },
+     {
+      "coverage": 1.0,
+      "accepted_error": 0.3055555555555556,
+      "n_accepted": 36
+     }
+    ],
+    "test_aurc": 0.15031381453795248,
+    "val_operating_point": {
+     "coverage": 0.6,
+     "cutoff": 0.45550189237134575,
+     "val_accepted_error": 0.23809523809523808,
+     "test_coverage": 0.7777777777777778,
+     "test_n_accepted": 28,
+     "test_accepted_error": 0.2857142857142857
+    }
+   },
+   "confidence_only": {
+    "val_curve": [
+     {
+      "coverage": 0.5,
+      "accepted_error": 0.2222222222222222,
+      "n_accepted": 18
+     },
+     {
+      "coverage": 0.6,
+      "accepted_error": 0.2857142857142857,
+      "n_accepted": 21
+     },
+     {
+      "coverage": 0.7,
+      "accepted_error": 0.32,
+      "n_accepted": 25
+     },
+     {
+      "coverage": 0.8,
+      "accepted_error": 0.2857142857142857,
+      "n_accepted": 28
+     },
+     {
+      "coverage": 0.9,
+      "accepted_error": 0.28125,
+      "n_accepted": 32
+     },
+     {
+      "coverage": 1.0,
+      "accepted_error": 0.3142857142857143,
+      "n_accepted": 35
+     }
+    ],
+    "test_curve": [
+     {
+      "coverage": 0.5,
+      "accepted_error": 0.2222222222222222,
+      "n_accepted": 18
+     },
+     {
+      "coverage": 0.6,
+      "accepted_error": 0.3181818181818182,
+      "n_accepted": 22
+     },
+     {
+      "coverage": 0.7,
+      "accepted_error": 0.3076923076923077,
+      "n_accepted": 26
+     },
+     {
+      "coverage": 0.8,
+      "accepted_error": 0.27586206896551724,
+      "n_accepted": 29
+     },
+     {
+      "coverage": 0.9,
+      "accepted_error": 0.2727272727272727,
+      "n_accepted": 33
+     },
+     {
+      "coverage": 1.0,
+      "accepted_error": 0.3055555555555556,
+      "n_accepted": 36
+     }
+    ],
+    "test_aurc": 0.14383523564558048,
+    "val_operating_point": {
+     "coverage": 0.9,
+     "cutoff": 0.5276983976364136,
+     "val_accepted_error": 0.28125,
+     "test_coverage": 0.8055555555555556,
+     "test_n_accepted": 29,
+     "test_accepted_error": 0.27586206896551724
+    }
+   }
+  },
+  "paired_bootstrap_gate_minus_conf": {
+   "by_coverage": {
+    "0.5": [
+     -0.11111111111111116,
+     0.11111111111111113
+    ],
+    "0.6": [
+     -0.13636363636363635,
+     0.09090909090909094
+    ],
+    "0.7": [
+     -0.11538461538461536,
+     0.11538461538461539
+    ],
+    "0.8": [
+     -0.06896551724137934,
+     0.10344827586206898
+    ],
+    "0.9": [
+     -0.06060606060606061,
+     0.09090909090909088
+    ],
+    "1.0": [
+     0.0,
+     0.0
+    ]
+   },
+   "aurc_diff_ci95": [
+    -0.03185179045092838,
+    0.03653047383650833
+   ],
+   "note": "descriptive paired bootstrap over scans; same test split reanalysed; no superiority conclusion"
+  },
+  "note": "descriptive; same test split reanalysed; single seed 42; no superiority conclusion"
+ },
+ "model_b": {
+  "unit": "scan",
+  "n_val": 35,
+  "n_test": 36,
+  "n_val_slices": 175,
+  "n_test_slices": 180,
+  "aggregation": "validation-fitted temperature -> softmax -> mean per scan; OOD = mean slice Ledoit-Wolf score",
+  "scan_accuracy_test": 0.7222222222222222,
+  "scan_accuracy_val": 0.6571428571428571,
+  "methods": {
+   "gate_v2_scan": {
+    "val_curve": [
+     {
+      "coverage": 0.5,
+      "accepted_error": 0.16666666666666666,
+      "n_accepted": 18
+     },
+     {
+      "coverage": 0.6,
+      "accepted_error": 0.23809523809523808,
+      "n_accepted": 21
+     },
+     {
+      "coverage": 0.7,
+      "accepted_error": 0.28,
+      "n_accepted": 25
+     },
+     {
+      "coverage": 0.8,
+      "accepted_error": 0.32142857142857145,
+      "n_accepted": 28
+     },
+     {
+      "coverage": 0.9,
+      "accepted_error": 0.3125,
+      "n_accepted": 32
+     },
+     {
+      "coverage": 1.0,
+      "accepted_error": 0.34285714285714286,
+      "n_accepted": 35
+     }
+    ],
+    "test_curve": [
+     {
+      "coverage": 0.5,
+      "accepted_error": 0.2777777777777778,
+      "n_accepted": 18
+     },
+     {
+      "coverage": 0.6,
+      "accepted_error": 0.22727272727272727,
+      "n_accepted": 22
+     },
+     {
+      "coverage": 0.7,
+      "accepted_error": 0.23076923076923078,
+      "n_accepted": 26
+     },
+     {
+      "coverage": 0.8,
+      "accepted_error": 0.27586206896551724,
+      "n_accepted": 29
+     },
+     {
+      "coverage": 0.9,
+      "accepted_error": 0.30303030303030304,
+      "n_accepted": 33
+     },
+     {
+      "coverage": 1.0,
+      "accepted_error": 0.2777777777777778,
+      "n_accepted": 36
+     }
+    ],
+    "test_aurc": 0.1314712107815556,
+    "val_operating_point": {
+     "coverage": 0.6,
+     "cutoff": 0.529042238644897,
+     "val_accepted_error": 0.23809523809523808,
+     "test_coverage": 0.6944444444444444,
+     "test_n_accepted": 25,
+     "test_accepted_error": 0.24
+    }
+   },
+   "confidence_only": {
+    "val_curve": [
+     {
+      "coverage": 0.5,
+      "accepted_error": 0.1111111111111111,
+      "n_accepted": 18
+     },
+     {
+      "coverage": 0.6,
+      "accepted_error": 0.14285714285714285,
+      "n_accepted": 21
+     },
+     {
+      "coverage": 0.7,
+      "accepted_error": 0.24,
+      "n_accepted": 25
+     },
+     {
+      "coverage": 0.8,
+      "accepted_error": 0.2857142857142857,
+      "n_accepted": 28
+     },
+     {
+      "coverage": 0.9,
+      "accepted_error": 0.34375,
+      "n_accepted": 32
+     },
+     {
+      "coverage": 1.0,
+      "accepted_error": 0.34285714285714286,
+      "n_accepted": 35
+     }
+    ],
+    "test_curve": [
+     {
+      "coverage": 0.5,
+      "accepted_error": 0.2777777777777778,
+      "n_accepted": 18
+     },
+     {
+      "coverage": 0.6,
+      "accepted_error": 0.2727272727272727,
+      "n_accepted": 22
+     },
+     {
+      "coverage": 0.7,
+      "accepted_error": 0.2692307692307692,
+      "n_accepted": 26
+     },
+     {
+      "coverage": 0.8,
+      "accepted_error": 0.2413793103448276,
+      "n_accepted": 29
+     },
+     {
+      "coverage": 0.9,
+      "accepted_error": 0.24242424242424243,
+      "n_accepted": 33
+     },
+     {
+      "coverage": 1.0,
+      "accepted_error": 0.2777777777777778,
+      "n_accepted": 36
+     }
+    ],
+    "test_aurc": 0.13035393725048897,
+    "val_operating_point": {
+     "coverage": 0.6,
+     "cutoff": 0.5891104936599731,
+     "val_accepted_error": 0.14285714285714285,
+     "test_coverage": 0.75,
+     "test_n_accepted": 27,
+     "test_accepted_error": 0.25925925925925924
+    }
+   }
+  },
+  "paired_bootstrap_gate_minus_conf": {
+   "by_coverage": {
+    "0.5": [
+     -0.16666666666666669,
+     0.05555555555555558
+    ],
+    "0.6": [
+     -0.13636363636363635,
+     0.04545454545454547
+    ],
+    "0.7": [
+     -0.07692307692307693,
+     0.11538461538461536
+    ],
+    "0.8": [
+     -0.03448275862068967,
+     0.13793103448275862
+    ],
+    "0.9": [
+     0.0,
+     0.09090909090909091
+    ],
+    "1.0": [
+     0.0,
+     0.0
+    ]
+   },
+   "aurc_diff_ci95": [
+    -0.023886142593039134,
+    0.025584810304637898
+   ],
+   "note": "descriptive paired bootstrap over scans; same test split reanalysed; no superiority conclusion"
+  },
+  "note": "descriptive; same test split reanalysed; single seed 42; no superiority conclusion"
+ }
+}
+Saved to /kaggle/working/outputs
+exit 0
+model_a {
+ "mean_ood_ledoit_wolf": 1955.3292209415413,
+ "ece_raw": 0.09147700170675914,
+ "ece_calibrated": 0.08290421134895747,
+ "brier": 0.4357642622066646,
+ "accuracy": 0.6111111111111112,
+ "mean_ood": 8492485.186425362
+}
+model_b {
+ "mean_ood_ledoit_wolf": 1339.2264649830222,
+ "ece_raw": 0.07297616534762912,
+ "ece_calibrated": 0.09924845861064063,
+ "brier": 0.4509888136676433,
+ "accuracy": 0.6388888888888888,
+ "mean_ood": 7866.178393347553
+}
+gate: {
+ "max_uncertainty": 1.0,
+ "max_ood": Infinity,
+ "min_confidence": 0.0,
+ "source": "validation risk cutoff=1.00, ungated_error=0.326",
+ "degenerate": false
+}
+SAVED ['/kaggle/working/outputs/failure_fingerprint_overconfident.json', '/kaggle/working/outputs/logits_model_a_test.npz', '/kaggle/working/outputs/logits_model_a_val.npz', '/kaggle/working/outputs/logits_model_b_test.npz', '/kaggle/working/outputs/logits_model_b_val.npz', '/kaggle/working/outputs/reliability_results.json']
