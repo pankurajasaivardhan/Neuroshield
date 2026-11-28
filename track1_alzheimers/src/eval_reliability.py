@@ -3,17 +3,20 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import hashlib
+import subprocess
 import numpy as np
 import torch
 from sklearn.metrics import accuracy_score
 from shared.reliability.calibration import expected_calibration_error, brier_score, reliability_table, TemperatureScaler
 from shared.reliability.uncertainty import predictive_entropy, mutual_information, mc_dropout_probs
-from shared.reliability.ood import MahalanobisOOD
+from shared.reliability.ood import MahalanobisOOD, ood_overfit_ratio
 from shared.reliability.disagreement import classification_disagreement
 from shared.reliability import gate as gate_mod
 from shared.reliability.fingerprint import FailureFingerprint, FailureCase
 from shared.reliability.report import ReliabilityReport
-from .data import OASISDataset
+from shared.reliability.scan_eval import run_scan_level
+from .data import OASISDataset, OASISDatasetNotebookViT
 from . import train_model_a, train_model_b
 
 def load_checkpoint(model, path, device):
@@ -47,11 +50,6 @@ def collect_logits_and_features(model, dataset, device, feature_hook_layer):
 
 def vit_feature_layer(model):
 
-    class MeanPool(torch.nn.Module):
-
-        def forward(self, x):
-            return x.mean(dim=1)
-    model.encoder.ln.register_forward_hook
     return _TapLayer(model.encoder.ln)
 
 class _TapLayer:
@@ -74,12 +72,32 @@ def main():
     ap.add_argument('--model-a', default=None, help='Model A checkpoint path')
     ap.add_argument('--model-b', default=None, help='Model B checkpoint path')
     ap.add_argument('--out', required=True)
+    ap.add_argument('--vit-input', choices=['repo', 'notebook'], default='repo', help="'notebook' = input pipeline the ViT was trained with; 'repo' = legacy data.py pipeline")
     ap.add_argument('--mc-passes', type=int, default=30)
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
+    import shared.reliability.gate as _g
+    def _sha(p):
+        if not p: return None
+        h = hashlib.sha256()
+        with open(p, 'rb') as fh:
+            for ch in iter(lambda: fh.read(1 << 20), b''):
+                h.update(ch)
+        return h.hexdigest()
+    try:
+        commit = subprocess.run(['git', '-C', os.path.dirname(_g.__file__), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
+    except Exception:
+        commit = 'unknown'
+    prov = {'git_commit': commit, 'gate_module_path': _g.__file__, 'gate_modes_run': ['legacy', 'v2_target'],
+            'checkpoints': {'model_a': {'requested': args.model_a, 'sha256': _sha(args.model_a)}, 'model_b': {'requested': args.model_b, 'sha256': _sha(args.model_b)}}}
+    print('PROVENANCE', json.dumps(prov, indent=1), flush=True)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     splits = {s: os.path.join(args.data_root, f'splits/{s}.csv') for s in ('train', 'val', 'test')}
     models = {}
+    def make_ds(name, split):
+        if name == 'model_b' and args.vit_input == 'notebook':
+            return OASISDatasetNotebookViT(splits[split])
+        return OASISDataset(splits[split])
     if args.model_a:
         m = train_model_a.build_model()
         load_checkpoint(m, args.model_a, device)
@@ -88,31 +106,46 @@ def main():
         m = train_model_b.build_model()
         load_checkpoint(m, args.model_b, device)
         models['model_b'] = (m.to(device), vit_feature_layer)
-    results = {'models': {}}
+    results = {'models': {}, 'provenance': prov}
     fitted = {}
     for (name, (model, feat_fn)) in models.items():
         per_split = {}
         ood_model = None
+        ood_lw = None
         scaler = None
+        split_ood = {}
         for split in ('train', 'val', 'test'):
-            ds = OASISDataset(splits[split])
+            ds = make_ds(name, split)
             (logits, feats, labels, ids) = collect_logits_and_features(model, ds, device, feat_fn(model))
             if split == 'train':
                 ood_model = MahalanobisOOD()
                 ood_model.fit(feats, labels)
+                ood_lw = MahalanobisOOD(shrinkage='ledoit_wolf')
+                ood_lw.fit(feats, labels)
             if split == 'val':
                 scaler = TemperatureScaler()
                 scaler.fit(logits, labels)
             probs_raw = torch.softmax(torch.tensor(logits), dim=-1).numpy()
             probs_cal = scaler.transform(logits) if scaler else probs_raw
             ood_scores = ood_model.score(feats) if ood_model else np.zeros(len(labels))
-            per_split[split] = {'ece_raw': expected_calibration_error(probs_raw, labels), 'ece_calibrated': expected_calibration_error(probs_cal, labels), 'brier': brier_score(probs_cal, labels), 'accuracy': float(accuracy_score(labels, probs_cal.argmax(axis=1))), 'mean_ood': float(ood_scores.mean())}
-        fitted[name] = {'ood': ood_model, 'scaler': scaler}
+            lw_scores = ood_lw.score(feats) if ood_lw else np.zeros(len(labels))
+            split_ood[split] = (ood_scores, lw_scores)
+            per_split[split] = {'mean_ood_ledoit_wolf': float(lw_scores.mean()), 'ece_raw': expected_calibration_error(probs_raw, labels), 'ece_calibrated': expected_calibration_error(probs_cal, labels), 'brier': brier_score(probs_cal, labels), 'accuracy': float(accuracy_score(labels, probs_cal.argmax(axis=1))), 'mean_ood': float(ood_scores.mean())}
+        per_split['ood_diagnostics'] = {
+            'legacy_val_over_train': ood_overfit_ratio(split_ood['train'][0], split_ood['val'][0]),
+            'legacy_test_over_train': ood_overfit_ratio(split_ood['train'][0], split_ood['test'][0]),
+            'ledoit_wolf_val_over_train': ood_overfit_ratio(split_ood['train'][1], split_ood['val'][1]),
+            'ledoit_wolf_test_over_train': ood_overfit_ratio(split_ood['train'][1], split_ood['test'][1]),
+            'legacy_condition_number': ood_model.condition_number,
+            'ledoit_wolf_condition_number': ood_lw.condition_number,
+            'ledoit_wolf_shrinkage_intensity': ood_lw.shrinkage_intensity,
+            'note': 'descriptive only: train distances are in-sample by construction, so a held-out/train ratio above 1 is expected and is not a transfer or detection verdict; conditioning is not proof of detection ability'}
+        fitted[name] = {'ood': ood_model, 'ood_lw': ood_lw, 'scaler': scaler}
         results['models'][name] = per_split
         print(f'[{name}]', json.dumps(per_split, indent=2), flush=True)
     uncertainty = {}
     for (name, (model, _)) in models.items():
-        ds = OASISDataset(splits['test'])
+        ds = make_ds(name, 'test')
         sample_probs = []
         for i in range(len(ds)):
             (img, _, _) = ds[i]
@@ -122,7 +155,7 @@ def main():
     if len(models) == 2:
         prob_sets = []
         for (name, (model, _)) in models.items():
-            ds = OASISDataset(splits['test'])
+            ds = make_ds(name, 'test')
             (logits, _, labels, ids) = collect_logits_and_features(model, ds, device, resnet_feature_layer(model) if name == 'model_a' else vit_feature_layer(model))
             prob_sets.append(torch.softmax(torch.tensor(logits), dim=-1).numpy())
         dis = classification_disagreement(prob_sets)
@@ -131,15 +164,16 @@ def main():
     (model, feat_fn) = models[name0]
     gate_data = {}
     for split in ('val', 'test'):
-        ds = OASISDataset(splits[split])
+        ds = make_ds(name0, split)
         (logits, feats, labels, ids) = collect_logits_and_features(model, ds, device, feat_fn(model))
         scaler = fitted[name0]['scaler']
         probs = scaler.transform(logits) if scaler else torch.softmax(torch.tensor(logits), dim=-1).numpy()
         conf = probs.max(axis=1)
         ent = predictive_entropy(probs)
         ood = fitted[name0]['ood'].score(feats)
+        ood_lw_scores = fitted[name0]['ood_lw'].score(feats)
         errors = (probs.argmax(axis=1) != labels).astype(float)
-        gate_data[split] = dict(conf=conf, ent=ent, ood=ood, errors=errors, labels=labels, ids=ids, probs=probs)
+        gate_data[split] = dict(conf=conf, ent=ent, ood=ood, ood_lw=ood_lw_scores, errors=errors, labels=labels, ids=ids, probs=probs)
     val_risk = gate_mod.risk_score(gate_data['val']['conf'], gate_data['val']['ent'], gate_data['val']['ood'])
     thresholds = gate_mod.select_thresholds(val_risk, gate_data['val']['errors'])
     test_risk = gate_mod.risk_score(gate_data['test']['conf'], gate_data['test']['ent'], gate_data['test']['ood'])
@@ -147,6 +181,44 @@ def main():
     decisions = gate_mod.decide(gate_data['test']['ids'], test_risk, thresholds.max_uncertainty, signals)
     curve = gate_mod.risk_coverage_curve(test_risk, gate_data['test']['errors'])
     results['gate'] = {'thresholds': thresholds.__dict__, 'decisions': [d.__dict__ for d in decisions], 'risk_coverage': curve[::max(1, len(curve) // 20)], 'test_error_ungated': float(gate_data['test']['errors'].mean())}
+    # Gate v2 (validation-only): fitted normaliser + target-error objective, Ledoit-Wolf OOD.
+    gd_v, gd_t = gate_data['val'], gate_data['test']
+    norm = gate_mod.RiskNormalizer.fit(gd_v['ent'], gd_v['ood_lw'])
+    v2_val_risk = norm.risk(gd_v['conf'], gd_v['ent'], gd_v['ood_lw'])
+    v2_test_risk = norm.risk(gd_t['conf'], gd_t['ent'], gd_t['ood_lw'])
+    th2 = gate_mod.select_thresholds_target(v2_val_risk, gd_v['errors'])
+    dec2 = gate_mod.decide(gd_t['ids'], v2_test_risk, th2.max_uncertainty, signals)
+    acc2 = np.array([d.decision.startswith('ACCEPT') for d in dec2])
+    results['gate_v2'] = {'thresholds': th2.__dict__, 'n_test': int(len(acc2)), 'coverage_test': float(acc2.mean()),
+                          'accepted_error_test': float(gd_t['errors'][acc2].mean()) if acc2.any() else None,
+                          'ungated_error_test': float(gd_t['errors'].mean()),
+                          'note': 'test numbers are evaluated once with a validation-fitted cutoff; slices of one scan are not independent'}
+    results['gate']['legacy_target_note'] = 'legacy target accepted error = median of binary validation errors; with ungated error below 0.5 that median is 0, so the legacy rule almost never accepts a cutoff below 1.0'
+    results['slice_counts'] = {sp: int(len(OASISDataset(splits[sp]))) for sp in ('train', 'val', 'test')}
+    results['scan_level'] = {}
+    results['scan_level_raw_prob_average'] = {}
+    results['slice_accuracy_test'] = {}
+    results['vit_input_pipeline'] = args.vit_input
+    for (name, (mdl, ffn)) in models.items():
+        d, d_raw = {}, {}
+        for sp in ('val', 'test'):
+            ds = make_ds(name, sp)
+            (lg, ft, lb, idl) = collect_logits_and_features(mdl, ds, device, ffn(mdl))
+            sc = fitted[name]['scaler']
+            pr = sc.transform(lg) if sc else torch.softmax(torch.tensor(lg), dim=-1).numpy()
+            pr_raw = torch.softmax(torch.tensor(lg), dim=-1).numpy()
+            d[sp] = dict(probs=pr, ood_lw=fitted[name]['ood_lw'].score(ft), ids=idl, labels=lb)
+            np.savez(os.path.join(args.out, f'logits_{name}_{sp}.npz'), logits=lg, labels=lb, scan_ids=np.array(idl), slice_idx=np.arange(len(idl)))
+            d_raw[sp] = dict(probs=pr_raw, ood_lw=d[sp]['ood_lw'], ids=idl, labels=lb)
+        results['scan_level'][name] = run_scan_level(d['val'], d['test'])
+        results['scan_level_raw_prob_average'][name] = run_scan_level(d_raw['val'], d_raw['test'])
+        results['slice_accuracy_test'][name] = float((d['test']['probs'].argmax(1) == d['test']['labels']).mean())
+    print('GATE_LEGACY', json.dumps(results['gate']['thresholds']), flush=True)
+    print('GATE_V2', json.dumps(results['gate_v2']), flush=True)
+    print('SLICE_COUNTS', json.dumps(results['slice_counts']), flush=True)
+    print('VIT_INPUT', args.vit_input, 'SLICE_ACC_TEST', json.dumps(results['slice_accuracy_test']), flush=True)
+    print('SCAN_LEVEL_RAW', json.dumps(results['scan_level_raw_prob_average'], default=str), flush=True)
+    print('SCAN_LEVEL', json.dumps(results['scan_level'], indent=1, default=str), flush=True)
     overconf = []
     for (cid, p, lab, r) in zip(gate_data['test']['ids'], gate_data['test']['probs'], gate_data['test']['labels'], test_risk):
         pred = int(p.argmax())

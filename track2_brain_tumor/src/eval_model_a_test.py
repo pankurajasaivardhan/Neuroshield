@@ -6,7 +6,6 @@ import os
 import subprocess
 from scipy.ndimage import distance_transform_edt
 import numpy as np
-import nibabel as nib
 REGIONS = {'WT': lambda m: m > 0, 'TC': lambda m: (m == 1) | (m == 3), 'ET': lambda m: m == 3}
 
 def dice_iou(pred: np.ndarray, gt: np.ndarray) -> tuple[float, float]:
@@ -19,7 +18,15 @@ def dice_iou(pred: np.ndarray, gt: np.ndarray) -> tuple[float, float]:
     iou = inter / union if union > 0 else 0.0
     return (dice, iou)
 
-def hd95(pred: np.ndarray, gt: np.ndarray, spacing=(1.0, 1.0, 1.0)) -> float:
+def _surface(mask: np.ndarray) -> np.ndarray:
+    from scipy.ndimage import binary_erosion
+    m = mask.astype(bool)
+    return np.logical_xor(m, binary_erosion(m, structure=np.ones((3, 3, 3)), border_value=0))
+
+
+def hd95_all_voxels(pred: np.ndarray, gt: np.ndarray, spacing=(1.0, 1.0, 1.0)) -> float:
+    """ORIGINAL definition (distances of every mask voxel, interior included). It is lower
+    than the standard surface HD95. The reported UNETR HD95 values were computed with it."""
     if pred.sum() == 0 and gt.sum() == 0:
         return 0.0
     if pred.sum() == 0 or gt.sum() == 0:
@@ -30,7 +37,26 @@ def hd95(pred: np.ndarray, gt: np.ndarray, spacing=(1.0, 1.0, 1.0)) -> float:
     d2 = dt_pred[gt.astype(bool)]
     return float(np.percentile(np.concatenate([d1, d2]), 95))
 
+
+def hd95(pred: np.ndarray, gt: np.ndarray, spacing=(1.0, 1.0, 1.0)) -> float:
+    """Standard HD95: 95th percentile of symmetric SURFACE-to-surface distances. This matches
+    the Model A test notebook and the paper's definition."""
+    if pred.sum() == 0 and gt.sum() == 0:
+        return 0.0
+    if pred.sum() == 0 or gt.sum() == 0:
+        return float('nan')
+    sp, sg = _surface(pred), _surface(gt)
+    if not sp.any():
+        sp = pred.astype(bool)
+    if not sg.any():
+        sg = gt.astype(bool)
+    dt_gt = distance_transform_edt(~sg, sampling=spacing)
+    dt_pred = distance_transform_edt(~sp, sampling=spacing)
+    return float(np.percentile(np.concatenate([dt_gt[sp], dt_pred[sg]]), 95))
+
+
 def main():
+    import nibabel as nib
     ap = argparse.ArgumentParser()
     ap.add_argument('--manifest', required=True, help='braintumor_manifest.csv')
     ap.add_argument('--raw-data', required=True, help='BraTS2020_TrainingData root')
