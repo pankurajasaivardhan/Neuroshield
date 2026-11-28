@@ -222,6 +222,18 @@ BraTS2020 fold0 = 249 train / 63 validation / 56 held-out test cases.
 
 Majority-class baseline accuracy: 0.573.
 
+### Track 1 - Update after the code audit and matched-input reruns (Versions 5 to 7)
+
+This section supersedes the legacy reliability numbers below where they differ. Details are in the paper (`NeuroShield` paper, Sections on Versions 5 and 7) and `docs/results/V6_README.md`.
+
+- Matched-input rerun (seed 42, ViT trained input): scans correct 26/36 (ViT) and 25/36 (ResNet-50); mismatch between the two models 26.1% of slices (the 0.394 figure below used a mismatched ViT input); ViT ECE 0.0730 raw and 0.0992 after temperature scaling; Brier 0.4510.
+- Definitions: "raw" is the softmax of the unmodified logits; "temperature scaled" is the softmax of logits divided by a temperature fitted on validation slices only. Scan-level counts use temperature-scaled slice probabilities averaged per scan.
+- The audit found the original gate rule degenerate by construction. A repaired rule accepts a subset of scans. On the 36 test scans it shows no measured advantage over the maximum-probability baseline: for all four additional model-seed pairs (seeds 123 and 2024, both models) the paired bootstrap interval of the partial-area difference includes 0.
+- Seeds 123 and 2024 (Version 7): scans correct ResNet-50 26/36 and 26/36, ViT 26/36 and 25/36. ViT raw ECE 0.043 and 0.046. These reuse the same already-seen 36 test scans, so they show seed variation only and are not new validation.
+- Not done: CDR 0.5 exclusion sensitivity, per-seed model disagreement beyond seed 42, ADNI external validation, a Model C repair, and an explanation example on a real abstention.
+- Weights: the three ViT-B/16 seeds and the Track 2 nnU-Net are in release `demo-v1`. The ResNet-50 (3 seeds) and UNETR checkpoints are not published. Their release is on hold until the OASIS and third-party terms are settled.
+- No licence has been chosen for this repository yet.
+
 ### Track 1 - Reliability evaluation (slice level, 180 test slices)
 
 > **Warning:** the Model B (ViT-B/16) column and the disagreement numbers below were computed with the repository input (one slice repeated 3 times), not the ViT's training input (3 adjacent slices). They are **not valid for the notebook-trained ViT** (the matched-input rerun, Version 6, replaced scan-level, ECE, Brier and OOD values only, see `docs/results/V6_README.md`; disagreement was not recomputed). The Model A column uses the repository input. Treat these as legacy results.
@@ -387,6 +399,10 @@ authoritative): 249 train / 63 val / 56 test, from `splits_final.json` under
   2017 (doi:10.1109/TMI.2017.2705472); Bakas et al., 2018
   (arXiv:1811.02629, TCIA doi:10.7937/K9/TCIA.2017.KLXWJJ1Q).
 
+## Acknowledgements
+
+Data were provided in part by OASIS: OASIS-1 Cross-Sectional, Principal Investigators D. Marcus, R. Buckner, J. Csernansky, and J. Morris (grants P50 AG05681, P01 AG03991, P01 AG026276, R01 AG021910, P20 MH071616, U24 RR021382). BraTS 2020 data are used under the BraTS data usage terms with the citations listed above.
+
 ## Known limitations
 
 - External validation on ADNI (Track 1) was not run; it is future work.
@@ -403,3 +419,4 @@ authoritative): 249 train / 63 val / 56 test, from `splits_final.json` under
 - Always label numbers as validation or test results.
 - A failed repair is a valid result; report it.
 - Two tracks only: Alzheimer's classification and brain tumor segmentation.
+
