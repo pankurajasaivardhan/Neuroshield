@@ -8,5 +8,5 @@ Descriptive reanalysis of an already-seen test split. Seed 42 checkpoints, no re
 Notes
 - `test_aurc` in the JSON is a PARTIAL area: trapezoid rule over coverage 0.5 to 1.0 only (six points, width 0.5). It is not the standard AURC over 0 to 1.
 - Bootstrap intervals (10,000 resamples, seed 0) include zero everywhere. That does not show equivalence or rule out a benefit. No ranking is claimed.
-- ResNet-50 seed 42: 25/36 scans correct (matches the training notebook). ViT-B/16 seed 42: 22/36 here versus 26/36 in the training notebook. Cause not found. The checkpoint SHA-256 matches the repository LFS pointer.
+- ResNet-50 seed 42: 25/36 scans correct (matches the training notebook). ViT-B/16 seed 42: 22/36 here versus 26/36 in the training notebook. The checkpoint SHA-256 matches the repository LFS pointer. Likely cause (from code comparison, not yet confirmed by a run): the repository evaluation input repeats one slice, while the ViT training notebook stacks 3 adjacent slices. The ViT rows of this run are therefore not valid for the notebook-trained ViT. A matched-input rerun (Version 6) is pending.
 - Slice-level v2 gate (cutoff 0.521, validation coverage 0.58) is a different quantity from the scan protocol grid (coverage >= 0.6).
