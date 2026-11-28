@@ -1,5 +1,5 @@
 > **Status: interim reliability audit (read before using any Track 1 reliability number).** Details: [AUDIT_STATUS.md](AUDIT_STATUS.md).
-> - Track 1 ViT-B/16 reliability, calibration, gate, OOD and model-disagreement results in this repository were computed with an input pipeline that differs from the one the ViT was trained with (single slice repeated 3 times, versus 3 adjacent slices stacked as channels). They do not apply to the notebook-trained ViT. A matched-input rerun (Kaggle Version 6, finished) gave 26 of 36 scans for the ViT, the training notebook's count, which confirms the input difference as the cause of the earlier 22 of 36. Scan count agreement does not prove the whole pipeline is identical. Matched-input slice-level calibration and OOD numbers are in `docs/results/V6_README.md`. The model-disagreement numbers (39.4%) and the ViT part of Fig. 7 have **not** been recomputed and stay invalid for the notebook-trained ViT. The ResNet-50 path uses the repository input, but the exact repository commit used for its training notebook was not confirmed.
+> - Track 1 ViT-B/16 reliability, calibration, gate, OOD and model-disagreement results in this repository were computed with an input pipeline that differs from the one the ViT was trained with (single slice repeated 3 times, versus 3 adjacent slices stacked as channels). They do not apply to the notebook-trained ViT. A matched-input rerun (Kaggle Version 6, finished) gave 26 of 36 scans for the ViT, the training notebook's count, which confirms the input difference as the cause of the earlier 22 of 36. Scan count agreement does not prove the whole pipeline is identical. Matched-input slice-level calibration and OOD numbers are in `docs/results/V6_README.md`. Disagreement was recomputed from the V6 output: 26.1% of slices (47/180) with the matched ViT input, against 39.4% in the first run (which is invalid for the notebook-trained ViT). The ResNet-50 path uses the repository input, but the exact repository commit used for its training notebook was not confirmed.
 > - The repaired gate runs and works as code (tested on synthetic data and executed on the real splits, Versions 5 and 6). On 36 scans it showed **no demonstrated advantage** over a maximum-probability baseline (all paired intervals include 0). The original gate still accepts everything.
 > - `docs/figures/fig_flair_stability.pdf` is the OLD figure (49 of 56 cases under an n=56 label). The corrected 56-case figure is `docs/figures/fig_flair_stability_n56.svg` (the corrected PDF could not be uploaded, so the PDF stays old). Data: `docs/results/track2_flair_removal_per_case_56.csv`.
 
@@ -293,8 +293,9 @@ Track 1 - Alzheimer's classification (OASIS-1):
 | Model B training (ViT-B/16, 3 seeds) | `03-train-model-b-final` v1 (executed 2026-09-24) | scan acc 0.7130 ± 0.0131, AUC 0.7386 ± 0.0120; majority baseline 0.5732 |
 | Reliability evaluation | `notebooke0cf27f81b` v3 | slice-level, 180 test slices - see the reliability table above |
 
-Track 1 reliability extras: disagreement mismatch fraction 0.3944, mean JS
-divergence 0.0273 (180 slices). Gate: DEGENERATE - validation-fitted
+Track 1 reliability extras (version 3, LEGACY repository ViT input, not valid for the
+notebook-trained ViT): disagreement mismatch fraction 0.3944, mean JS
+divergence 0.0273 (180 slices). Matched ViT input (V6): 0.2611, mean JS 0.0187. Gate: DEGENERATE - validation-fitted
 thresholds admit every input (cutoff 1.00), so accepted error equals ungated
 test error 0.3889. The threshold-swept risk-coverage curve is NOT flat
 (accepted-subset error ~0.18-0.20 at 15-35% coverage), i.e. the reliability
